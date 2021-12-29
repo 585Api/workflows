@@ -1,0 +1,418 @@
+---
+#--------------------------------------------------
+#  发布Docker项目到生产环境
+#
+#  免费版的Github Organization，不支持配置Secrets，所以
+#  通过自托管的Runner从服务器上获取SSH Private Key。
+#--------------------------------------------------
+#
+
+name: Deploy Docker
+
+env:
+  DEPLOY_OWNER: www
+  SSH_USER: root
+  WEB_DIR: /www/wwwroot
+
+on:
+  workflow_call:
+    inputs:
+      username:
+        required: true
+        type: string
+
+jobs:
+  info:
+    runs-on: self-hosted
+    steps:
+      - name: 当前用户
+        run: whoami
+      - name: 输出变量
+        run: |
+          echo "GITHUB_WORKFLOW: $GITHUB_WORKFLOW"
+          echo "GITHUB_ACTION: $GITHUB_ACTION"
+          echo "GITHUB_ACTION_PATH: $GITHUB_ACTION_PATH"
+          echo "GITHUB_ACTIONS: $GITHUB_ACTIONS"
+          echo "GITHUB_ACTOR: $GITHUB_ACTOR"
+          echo "GITHUB_REPOSITORY: $GITHUB_REPOSITORY"
+          echo ${{ inputs.username }}
+
+  set-deploy-variables:
+    runs-on: self-hosted
+    steps:
+      - name: 当前用户
+        run: whoami
+      - name: 检查deploy.env文件
+        run: |
+          if [[ ! -f /www/deploy.env ]];then
+            echo -e "\033[5;31m- 请在/www/deploy.env文件中配置各个环境变量的值 \033[0m"
+            exit 1
+          fi
+      - name: 复制deploy_host文件
+        run: source /www/deploy.env && echo $HOST_IP > ./deploy_host
+      - name: 上传deploy_host文件
+        uses: actions/upload-artifact@v2
+        with:
+          name: deploy_host
+          path: deploy_host
+          retention-days: 1
+      - name: 复制deploy_key文件
+        run: source /www/deploy.env && echo -e $DEPLOY_KEY > ./deploy_key
+      - name: 上传deploy_key文件
+        uses: actions/upload-artifact@v2
+        with:
+          name: deploy_key
+          path: deploy_key
+          retention-days: 1
+      - name: 复制deploy_env文件
+        run: cp /www/deploy.env ./deploy_env
+      - name: 上传deploy_env文件
+        uses: actions/upload-artifact@v2
+        with:
+          name: deploy_env
+          path: deploy_env
+          retention-days: 1
+
+  set-variables:
+    runs-on: ubuntu-latest
+    outputs:
+      database_name: ${{ steps.step1.outputs.database_name }}
+      release_dir: ${{ steps.step2.outputs.release_dir }}
+      horizon_installed: ${{ steps.step3.outputs.horizon_installed }}
+      opcache_installed: ${{ steps.step4.outputs.opcache_installed }}
+      deploy_dir: ${{ steps.step5.outputs.deploy_dir }}
+      deploy_dir_name: ${{ steps.step6.outputs.deploy_dir_name }}
+      need_npm_build: ${{ steps.step7.outputs.need_npm_build }}
+      deploy: ${{ steps.step8.outputs.deploy }}
+    steps:
+      - name: 当前用户
+        run: whoami
+      - name: 下载项目
+        uses: actions/checkout@v2.3.4
+      - name: 生成数据库名
+        id: step1
+        run: |
+          name=${{ github.event.repository.name }}
+          new=${name//./_}
+          echo -e "::set-output name=database_name::${new}"
+      - name: 生成发布文件夹名称
+        id: step2
+        run: |
+          name="${{ env.WEB_DIR }}/releases/${{ github.event.repository.name }}_$(date +"release_%Y%m%d%H%M%S")"
+          echo -e "::set-output name=release_dir::${name}"
+          echo $name > release_dir
+      - name: 上传release_dir文件
+        uses: actions/upload-artifact@v2
+        with:
+          name: release_dir
+          path: release_dir
+          retention-days: 1
+      - name: 判断是否安装了Laravel Horizon
+        id: step3
+        run: |
+          if [[ -f "artisan" ]] && [[ -f "composer.json" ]] && grep -q "horizon" composer.json ; then
+            horizon=true
+            echo '安装了horizon'
+          else
+            horizon=''
+            echo '未安装horizon'
+          fi
+          echo -e "::set-output name=horizon_installed::${horizon}"
+      - name: 判断是否安装了Opcache扩展包
+        id: step4
+        run: |
+          if [[ -f "artisan" ]] && [[ -f "composer.json" ]] && grep -q "opcache" composer.json ; then
+            opcache=true
+            echo '安装了opcahe扩展包'
+          else
+            opcache=''
+            echo '未安装opcache扩展包'
+          fi
+          echo -e "::set-output name=opcache_installed::${opcache}"
+      - name: 生成部署文件夹路径
+        id: step5
+        run: |
+          name="/www/wwwroot/${{ github.event.repository.name }}"
+          echo -e "::set-output name=deploy_dir::${name}"
+          echo $name > deploy_dir
+      - name: 上传deploy_dir文件
+        uses: actions/upload-artifact@v2
+        with:
+          name: deploy_dir
+          path: deploy_dir
+          retention-days: 1
+      - name: 生成部署文件夹名称
+        id: step6
+        run: |
+          name=${{ github.event.repository.name }}
+          echo -e "::set-output name=deploy_dir_name::${name}"
+          echo $name > deploy_dir_name
+      - name: 上传deploy_dir_name文件
+        uses: actions/upload-artifact@v2
+        with:
+          name: deploy_dir_name
+          path: deploy_dir_name
+          retention-days: 1
+      - name: 判断是否需要执行NPM构建
+        id: step7
+        run: echo -e "::set-output name=need_npm_build::$NPM_BUILD"
+      - name: 判断是否需要部署
+        id: step8
+        run: |
+          if [[ -f "do_not_deploy" ]]; then
+            deploy=false
+            echo 'do_not_deploy文件存在，无需部署'
+          else
+            deploy=true
+          fi
+          echo -e "::set-output name=deploy::${deploy}"
+
+  test-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 下载项目
+        uses: actions/checkout@v2
+      - name: 准备docker环境
+        uses: docker-practice/actions-setup-docker@master
+      - name: 测试构建应用
+        run: |
+          set -x
+          pwd
+          docker version
+          docker-compose build
+
+  make-env:
+    runs-on: ubuntu-latest
+    needs: [set-variables, set-deploy-variables, info, test-build]
+    env:
+      DB_DATABASE: ${{ needs.set-variables.outputs.database_name }}
+      TARGET: .env
+      APP_URL: http://${{ github.event.repository.name }}
+    steps:
+      - name: 当前用户
+        run: whoami
+      - name: 下载项目
+        uses: actions/checkout@v2
+      - name: 下载deploy_env
+        uses: actions/download-artifact@v2
+        with:
+          name: deploy_env
+      - name: 复制.env文件模板
+        run: |
+          if [[ -f .env.example ]]; then
+            cp .env.example .env
+          else
+            echo ".env.example不存在，无需复制"
+          fi
+      - name: 生成.env文件
+        run: |
+          if [[ ! -f .env.example ]]; then
+            echo ".env.example不存在，跳过"
+          else
+            # 加载变量
+            source ./deploy_env
+            # 将所有变量存入文件，用于下文判断变量是否存在
+            env > env.txt && cat ./deploy_env env.txt > variables.txt
+            echo -e "\033[32m---- 将${TARGET}文件中的环境变量替换成配置的值 ----\033[0m"
+            # 找出配置文件中的所有的环境变量并存入数组中
+            keys=$(eval echo $(sed -n "s/{{\([A-Z0-9a-z_]\{1,200\}\)}}$/\1/p" "$TARGET" | grep -o -e =.*|awk -F = '{ print $2 }'));
+            array=(${keys// / })
+            # 逐个替换
+            hasError=false
+            for key in ${array[@]}; do
+                eval value=\$"${key}"
+                # 转义value中的特殊字符（比如&符号，不转义会被下面的sed命令识别成特殊符号）
+                value=${value/\&/\\&}
+                if grep -q "^$key=" variables.txt ; then
+                  # 找出配置文件中的环境变量，并替换，请根据实际的格式修改这里的表达式
+                  echo -e "- 替换${key}"
+                  sed -i "s#{{$key}}#$value#" "$TARGET"
+                else
+                  echo -e "\033[5;31m- $key的值未配置 \033[0m"
+                  hasError=true
+                fi
+            done
+            if [ $hasError == true ];then
+              echo -e "\033[5;31m---- 部分变量值未配置 \r\n \033[0m"
+              exit 1
+            fi
+            echo -e "\033[32m---- 环境变量替换处理完成\r\n\033[0m"
+          fi
+      - name: 上传.env构件
+        uses: actions/upload-artifact@v2
+        with:
+          name: .env
+          path: .env
+          retention-days: 1
+
+  sync:
+    needs: [make-env]
+    runs-on: ubuntu-latest
+    steps:
+      - name: 当前用户
+        run: whoami
+      - name: 下载release_dir构件
+        uses: actions/download-artifact@v2
+        with:
+          name: release_dir
+      - name: 设置RELEASE_DIR变量
+        run: echo "RELEASE_DIR=$(cat release_dir)" >> $GITHUB_ENV
+      - name: 下载项目
+        uses: actions/checkout@v2
+      - name: 下载 .env 文件
+        uses: actions/download-artifact@v2
+        with:
+          name: .env
+      - name: 下载deploy_key
+        uses: actions/download-artifact@v2
+        with:
+          name: deploy_key
+      - name: 下载deploy_host
+        uses: actions/download-artifact@v2
+        with:
+          name: deploy_host
+      - name: 检查
+        run: |
+          if [[ ! -f deploy_key ]]; then
+            echo "deploy_key文件不存在，请检查"
+            exit 1
+          fi
+          if [[ ! -f deploy_host ]]; then
+            echo "deploy_host文件不存在，请检查"
+            exit 1
+          fi
+      - name: 同步到目标服务器
+        run: |
+          chmod 600 deploy_key
+          host=$(cat deploy_host)
+          rsync --chown=${{ env.DEPLOY_OWNER }}:${{ env.DEPLOY_OWNER }} \
+            -a \
+            --chmod=755 \
+            --delete \
+            --exclude="/deploy_key" \
+            --exclude="/node_modules/" \
+            -tt -rltgoDzvO \
+            -e "ssh -i ./deploy_key -p 22 -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no" \
+            ./ $SSH_USER@$host:$RELEASE_DIR
+
+  link:
+    needs: [sync]
+    runs-on: self-hosted
+    steps:
+      - name: 当前用户
+        run: whoami
+      - name: 下载release_dir构件
+        uses: actions/download-artifact@v2
+        with:
+          name: release_dir
+      - name: 设置RELEASE_DIR变量
+        run: echo "RELEASE_DIR=$(cat release_dir)" >> $GITHUB_ENV
+      - name: 下载deploy_dir构件
+        uses: actions/download-artifact@v2
+        with:
+          name: deploy_dir
+      - name: 设置DEPLOY_DIR变量
+        run: echo "DEPLOY_DIR=$(cat deploy_dir)" >> $GITHUB_ENV
+      - name: 删除deploy_dir构件
+        run: rm -rf deploy_dir
+      - name: 设置软链接
+        run: cd $RELEASE_DIR && cd .. && ln -snf $RELEASE_DIR $DEPLOY_DIR
+
+  start:
+    needs: [link]
+    runs-on: self-hosted
+    steps:
+      - name: 当前用户
+        run: whoami
+      - name: 下载deploy_dir构件
+        uses: actions/download-artifact@v2
+        with:
+          name: deploy_dir
+      - name: 设置DEPLOY_DIR变量
+        run: echo "DEPLOY_DIR=$(cat deploy_dir)" >> $GITHUB_ENV
+      - name: 删除deploy_dir构件
+        run: rm -rf deploy_dir
+      - name: 启动应用
+        run: cd $DEPLOY_DIR && docker-compose --project-name ${{ github.event.repository.name }} up -d --remove-orphans --build
+
+  # set-git-remote:
+  #   needs: [link]
+  #   runs-on: self-hosted
+  #   steps:
+  #     - name: 当前用户
+  #       run: whoami
+  #     - name: 下载deploy_dir构件
+  #       uses: actions/download-artifact@v2
+  #       with:
+  #         name: deploy_dir
+  #     - name: 设置DEPLOY_DIR变量
+  #       run: echo "DEPLOY_DIR=$(cat deploy_dir)" >> $GITHUB_ENV
+  #     - name: 删除deploy_dir构件
+  #       run: rm -rf deploy_dir
+  #     - name: 设置远程仓库
+  #       run: sed -i "s#https://github.com/#git@github.com:#" $DEPLOY_DIR/.git/config
+  #     - name: Git配置
+  #       run: cd $DEPLOY_DIR && git config pull.ff only
+
+  clear-releases:
+    needs: [start]
+    runs-on: self-hosted
+    steps:
+      - name: 当前用户
+        run: whoami
+      - name: 下载release_dir构件
+        uses: actions/download-artifact@v2
+        with:
+          name: release_dir
+      - name: 设置RELEASE_DIR变量
+        run: echo "RELEASE_DIR=$(cat release_dir)" >> $GITHUB_ENV
+      - name: 下载deploy_dir构件
+        uses: actions/download-artifact@v2
+        with:
+          name: deploy_dir
+      - name: 设置DEPLOY_DIR变量
+        run: echo "DEPLOY_DIR=$(cat deploy_dir)" >> $GITHUB_ENV
+      - name: 删除deploy_dir构件
+        run: rm -rf deploy_dir
+      - name: 下载deploy_dir_name构件
+        uses: actions/download-artifact@v2
+        with:
+          name: deploy_dir_name
+      - name: 设置DEPLOY_DIR_NAME变量
+        run: echo "DEPLOY_DIR_NAME=$(cat deploy_dir_name)" >> $GITHUB_ENV
+      - name: 清理多余版本
+        run: |
+          if [[ $DEPLOY_DIR_NAME == '' ]]; then
+            echo "未配置 DEPLOY_DIR_NAME"
+            exit 1
+          fi
+          if [[ $RELEASE_DIR == '' ]]; then
+            echo "RELEASE_DIR错误"
+            exit 1
+          fi
+          cd $RELEASE_DIR && cd ..
+          RELEASE_COUNT=$(cd ${RELEASE_DIR} && cd .. && find $PWD -maxdepth 1 | grep "${DEPLOY_DIR_NAME}_release_*" -c)
+          echo -e "目前在工作目录有 ${RELEASE_COUNT} 个版本\n"
+          if [ "${RELEASE_COUNT}" -gt 2 ]; then
+            ((DELETE_COUNT=${RELEASE_COUNT}-2))
+            echo -e "删除${DELETE_COUNT}个最早的版本\n"
+            cd ${RELEASE_DIR} && cd ..
+            TARGET=$(find $PWD -maxdepth 1 | grep "${DEPLOY_DIR_NAME}_release_*" | sort --human-numeric-sort | head -${DELETE_COUNT})
+            echo -e "删除 $TARGET"
+            rm -rf $TARGET
+          fi
+
+  clear-artifacts:
+    needs: [start]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: 当前用户
+        run: whoami
+      - name: 清理构件
+        uses: geekyeggo/delete-artifact@v1
+        with:
+          name: |
+            deploy_env
+            deploy_key
+            deploy_host
