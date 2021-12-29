@@ -10,7 +10,7 @@
 name: Deploy Docker
 
 env:
-  DEPLOY_OWNER: www
+  DEPLOY_OWNER: root
   SSH_USER: root
   WEB_DIR: /www/wwwroot
 
@@ -273,6 +273,7 @@ jobs:
           name: deploy_host
       - name: 检查
         run: |
+          echo 'deploy_key存储格式：DEPLOY_KEY="-----BEGIN RSA PRIVATE KEY-----\n{{key内容}}\n-----END RSA PRIVATE KEY-----"'
           if [[ ! -f deploy_key ]]; then
             echo "deploy_key文件不存在，请检查"
             exit 1
@@ -281,7 +282,6 @@ jobs:
             echo "deploy_host文件不存在，请检查"
             exit 1
           fi
-          cat deploy_key
       - name: 同步到目标服务器
         run: |
           chmod 600 deploy_key
