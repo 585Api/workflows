@@ -167,23 +167,23 @@ jobs:
           fi
           echo -e "::set-output name=deploy::${deploy}"
 
-  test-build:
-    runs-on: ubuntu-latest
-    steps:
-      - name: 下载项目
-        uses: actions/checkout@v2
-      - name: 准备docker环境
-        uses: docker-practice/actions-setup-docker@master
-      - name: 测试构建应用
-        run: |
-          set -x
-          pwd
-          docker version
-          docker-compose build
+  # test-build:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: 下载项目
+  #       uses: actions/checkout@v2
+  #     - name: 准备docker环境
+  #       uses: docker-practice/actions-setup-docker@master
+  #     - name: 测试构建应用
+  #       run: |
+  #         set -x
+  #         pwd
+  #         docker version
+  #         docker-compose build
 
   make-env:
     runs-on: ubuntu-latest
-    needs: [set-variables, set-deploy-variables, info, test-build]
+    needs: [set-variables, set-deploy-variables, info]
     env:
       DB_DATABASE: ${{ needs.set-variables.outputs.database_name }}
       TARGET: .env
