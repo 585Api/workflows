@@ -281,6 +281,7 @@ jobs:
             echo "deploy_host文件不存在，请检查"
             exit 1
           fi
+          cat deploy_key
       - name: 同步到目标服务器
         run: |
           chmod 600 deploy_key
