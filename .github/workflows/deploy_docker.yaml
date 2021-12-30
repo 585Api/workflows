@@ -248,7 +248,7 @@ jobs:
       - name: 登录ACR
         uses: aliyun/acr-login@v1
         with:
-          login-server: registry.cn-shanghai.aliyuncs.com
+          login-server: https://registry.cn-shanghai.aliyuncs.com
           username: "${{ inputs.REGISTRY_USERNAME }}"
           password: "${{ secrets.REGISTRY_PASSWORD }}"
           region-id: "cn-shanghai"
