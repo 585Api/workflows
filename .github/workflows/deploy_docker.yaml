@@ -20,10 +20,11 @@ on:
       acr_username:
         required: true
         type: string
-      acr_password:
+      acr_repo:
         required: true
         type: string
-      acr_repo:
+    secrets:
+      acr_password:
         required: true
         type: string
 
@@ -250,7 +251,7 @@ jobs:
         with:
           login-server: registry.cn-shanghai.aliyuncs.com
           username: "${{ inputs.REGISTRY_USERNAME }}"
-          password: "${{ inputs.REGISTRY_PASSWORD }}"
+          password: "${{ secrets.REGISTRY_PASSWORD }}"
       - name: Build and push image
         env:
           IMAGE_TAG: ${{ github.sha }}
@@ -259,8 +260,8 @@ jobs:
           set -x               
           pwd
           docker version
-          docker-compose build -t registry.cn-shanghai.aliyuncs.com/$ACR_REPO/demo:$IMAGE_TAG .
-          docker push registry.cn-shanghai.aliyuncs.com/$ACR_REPO/demo:$IMAGE_TAG
+          docker-compose build
+          docker-compose push
 
   sync:
     needs: [make-env]
