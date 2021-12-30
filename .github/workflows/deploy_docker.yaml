@@ -246,11 +246,11 @@ jobs:
       - name: 准备docker环境
         uses: docker-practice/actions-setup-docker@master
       - name: 登录ACR
-        env:
-          SERVER: https://registry.cn-shanghai.aliyuncs.com
-          USERNAME: "${{ inputs.REGISTRY_USERNAME }}"
-          PASSWORD: "${{ secrets.REGISTRY_PASSWORD }}"
-        run: docker login --username=$USERNAME --password=$PASSWORD $SERVER
+        uses: aliyun/acr-login@v1
+        with:
+          login-server: registry.cn-shanghai.aliyuncs.com
+          username: "${{ inputs.acr_username }}"
+          password: "${{ secrets.acr_password }}"
       - name: Build and push image
         env:
           IMAGE_TAG: ${{ github.sha }}
