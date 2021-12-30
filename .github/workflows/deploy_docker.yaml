@@ -301,6 +301,12 @@ jobs:
         run: |
           pwd 
           ls -alh
+      - name: 登录ACR
+        uses: aliyun/acr-login@v1
+        with:
+          login-server: registry.cn-shanghai.aliyuncs.com
+          username: "${{ inputs.acr_username }}"
+          password: "${{ secrets.acr_password }}"
       - name: 启动docker-compose
         run: docker-compose --project-name ${{ github.event.repository.name }} up -d --remove-orphans
 
