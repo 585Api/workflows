@@ -251,6 +251,7 @@ jobs:
           login-server: registry.cn-shanghai.aliyuncs.com
           username: "${{ inputs.REGISTRY_USERNAME }}"
           password: "${{ secrets.REGISTRY_PASSWORD }}"
+          region-id: "cn-shanghai"
       - name: Build and push image
         env:
           IMAGE_TAG: ${{ github.sha }}
