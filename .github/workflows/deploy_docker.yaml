@@ -26,7 +26,6 @@ on:
     secrets:
       acr_password:
         required: true
-        type: string
 
 jobs:
   info:
