@@ -266,11 +266,15 @@ jobs:
           password: "${{ secrets.acr_password }}"
       - name: Build and push image
         env:
-          IMAGE_TAG: ${{ github.sha }}
+          TAG: ${{ github.sha }}
           ACR_REPO: ${{ inputs.acr_repo }}
         run: |
           set -x
-          docker-compose build
+          if [ -f docker-compose.build.yml ]; then
+            docker-compose -f docker-compose.yml -f docker-compose.build.yml build
+          else
+            docker-compose build
+          fi
           docker-compose push
 
   start:
