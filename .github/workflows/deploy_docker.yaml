@@ -299,6 +299,7 @@ jobs:
         run: docker login -u ${{ inputs.acr_username }} -p ${{ secrets.acr_password }} registry.cn-shanghai.aliyuncs.com
       - name: 启动服务
         run: |
+          set -x
           docker stop addog
           docker rm addog
           docker run --name=${{ inputs.acr_repo }} --network apps -v "$PWD/.env":/workdir/.env -d ${{ inputs.acr_repo }}:$TAG
