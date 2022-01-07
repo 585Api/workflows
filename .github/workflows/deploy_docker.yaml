@@ -302,7 +302,7 @@ jobs:
           set -x
           docker stop addog
           docker rm addog
-          docker run --name=${{ inputs.acr_repo }} --network apps -v "$PWD/.env":/workdir/.env -d ${{ inputs.acr_repo }}:$TAG
+          docker run --name=${{ inputs.acr_repo }} --network apps -v "$PWD/.env":/workdir/.env -d ${{ inputs.acr_repo }}:${{ github.sha }}
 
   clear-artifacts:
     needs: [start]
