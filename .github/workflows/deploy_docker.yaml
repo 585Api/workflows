@@ -295,10 +295,6 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: .env
-      - name: 下载docker-compose.yml
-        uses: actions/download-artifact@v2
-        with:
-          name: docker-compose.yml
       - name: 当前路径
         run: |
           pwd 
