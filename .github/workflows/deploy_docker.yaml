@@ -309,10 +309,11 @@ jobs:
           login-server: registry.cn-shanghai.aliyuncs.com
           username: "${{ inputs.acr_username }}"
           password: "${{ secrets.acr_password }}"
-      - name: 用docker-compose拉镜像
-        run: docker-compose pull
-      - name: 用docker-compose启动服务
-        run: docker-compose --project-name ${{ github.event.repository.name }} up -d --remove-orphans
+      - name: 启动服务
+        run: |
+          docker stop addog
+          docker rm addog
+          docker run --name=${{ inputs.acr_repo }} --network apps -v "$PWD/.env":/workdir/.env -d ${{ inputs.acr_repo }}:$TAG
 
   clear-artifacts:
     needs: [start]
