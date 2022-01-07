@@ -264,8 +264,8 @@ jobs:
         uses: aliyun/acr-login@v1
         with:
           login-server: registry.cn-shanghai.aliyuncs.com
-          username: "${{ env.acr_username }}"
-          password: "${{ env.acr_password }}"
+          username: "${{ inputs.acr_username }}"
+          password: "${{ secrets.acr_password }}"
       - name: Build and push image
         uses: docker/build-push-action@v2
         with:
