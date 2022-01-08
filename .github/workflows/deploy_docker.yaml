@@ -286,7 +286,11 @@ jobs:
       - name: 删除deploy_dir构件
         run: rm -rf deploy_dir
       - name: 跳转到项目文件夹
-        run: cd $DEPLOY_DIR
+        run: |
+          if [ ! -d $DEPLOY_DIR ];then
+            mkdir -p $DEPLOY_DIR
+          fi
+          cd $DEPLOY_DIR
       - name: 下载.env
         uses: actions/download-artifact@v2
         with:
