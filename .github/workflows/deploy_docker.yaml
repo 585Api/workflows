@@ -304,8 +304,8 @@ jobs:
       - name: 启动服务
         run: |
           set -x
-          docker stop addog
-          docker rm addog
+          docker stop ${{ inputs.acr_repo }}
+          docker rm ${{ inputs.acr_repo }}
           docker run --name=${{ inputs.acr_repo }} --network apps -v "$PWD/.env":/workdir/.env -d ${{ inputs.acr_repo }}:${{ github.sha }}
 
   clear-artifacts:
