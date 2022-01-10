@@ -17,6 +17,8 @@ env:
 on:
   workflow_call:
     inputs:
+      app_name:
+        required: true
       acr_username:
         required: true
         type: string
@@ -305,12 +307,12 @@ jobs:
         run: |
           set -x
           {
-            docker stop ${{ inputs.acr_repo }}
-            docker rm ${{ inputs.acr_repo }}
+            docker stop ${{ inputs.app_name }}
+            docker rm ${{ inputs.app_name }}
           } || {
             echo '服务未启动'
           }
-          docker run --name=${{ inputs.acr_repo }} --network apps -v "$PWD/.env":/workdir/.env -d ${{ inputs.acr_repo }}:${{ github.sha }}
+          docker run --name=${{ inputs.app_name }} --network apps -v "$PWD/.env":/workdir/.env -d ${{ inputs.acr_repo }}:${{ github.sha }}
 
   clear-artifacts:
     needs: [start]
