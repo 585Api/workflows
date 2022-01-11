@@ -270,8 +270,10 @@ jobs:
         with:
           context: .
           push: true
-          tags: ${{ inputs.acr_repo }}:${{ github.sha }}
-          cache-from: type=registry,ref=${{ inputs.acr_repo }}
+          tags: |
+            ${{ inputs.acr_repo }}:${{ github.sha }}
+            ${{ inputs.acr_repo }}:latest
+          cache-from: type=registry,ref=${{ inputs.acr_repo }}:latest
           cache-to: type=inline
 
   start:
