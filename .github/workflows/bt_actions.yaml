@@ -1,0 +1,21 @@
+---
+#--------------------------------------------------
+#  操作宝塔面板
+#--------------------------------------------------
+#
+
+name: Bt Actions
+
+on:
+  workflow_call:
+    inputs:
+      domain:
+        required: true
+        type: string
+
+jobs:
+  add-site:
+    runs-on: self-hosted
+    steps:
+      - name: 增加网站
+        run: php /www/jarvis/artisan bt:add-site "domain=${{ inputs.domain }}"
