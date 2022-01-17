@@ -198,7 +198,9 @@ jobs:
           registry: registry.cn-shanghai.aliyuncs.com
           image: ${{ inputs.acr_repo }}:development-latest
           run: |
-            echo "hello world"
+            set -x
+            pwd
+            ls -alh
             # 安装PHP依赖
             composer install --prefer-dist --optimize-autoloader
             # 安装辅助工具包
