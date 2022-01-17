@@ -182,7 +182,7 @@ jobs:
         with:
           context: .
           build-args: env=development
-          push: false
+          push: true
           tags: |
             ${{ inputs.acr_repo }}:development-${{ github.sha }}
             ${{ inputs.acr_repo }}:development-latest
