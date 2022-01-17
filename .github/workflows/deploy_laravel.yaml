@@ -181,7 +181,7 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           context: .
-          push: true
+          push: false
           tags: |
             ${{ inputs.acr_repo }}:${{ github.sha }}
             ${{ inputs.acr_repo }}:latest
