@@ -19,6 +19,16 @@ env:
 
 on:
   workflow_call:
+    inputs:
+      acr_username:
+        required: true
+        type: string
+      acr_repo:
+        required: true
+        type: string
+    secrets:
+      acr_password:
+        required: true
 
 jobs:
   set-deploy-variables:
