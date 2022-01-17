@@ -187,8 +187,12 @@ jobs:
             ${{ inputs.acr_repo }}:latest
           cache-from: type=registry,ref=${{ inputs.acr_repo }}:latest
           cache-to: type=inline
-      - uses: addnab/docker-run-action@v3
+      - name: 在容器中执行操作
+        uses: addnab/docker-run-action@v3
         with:
+          username: ${{ inputs.acr_username }}
+          password: ${{ secrets.acr_password }}
+          registry: registry.cn-shanghai.aliyuncs.com
           image: ${{ inputs.acr_repo }}:latest
           run: |
             echo "hello world"
