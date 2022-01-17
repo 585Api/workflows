@@ -202,7 +202,7 @@ jobs:
             set -x
             cd /workdir
             # 安装PHP依赖
-            composer install --prefer-dist --optimize-autoloader
+            composer install --prefer-dist --optimize-autoloader --no-scripts
             # 安装辅助工具包
             if [[ -f "artisan" ]] && [[ -f "composer.json" ]] && grep -q "laravel-hammer" composer.json ; then
               echo '已安装 fix 命令'
