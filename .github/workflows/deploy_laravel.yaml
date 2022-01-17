@@ -187,6 +187,8 @@ jobs:
             ${{ inputs.acr_repo }}:latest
           cache-from: type=registry,ref=${{ inputs.acr_repo }}:latest
           cache-to: type=inline
+      - name: 检查本机镜像
+        run: docker images
       - name: 在容器中执行操作
         uses: addnab/docker-run-action@v3
         with:
