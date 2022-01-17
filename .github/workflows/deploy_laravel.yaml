@@ -197,10 +197,10 @@ jobs:
           password: ${{ secrets.acr_password }}
           registry: registry.cn-shanghai.aliyuncs.com
           image: ${{ inputs.acr_repo }}:development-latest
+          options: -v .:/workdir
           run: |
             set -x
-            pwd
-            ls -alh
+            cd /workdir
             # 安装PHP依赖
             composer install --prefer-dist --optimize-autoloader
             # 安装辅助工具包
