@@ -197,7 +197,7 @@ jobs:
           password: ${{ secrets.acr_password }}
           registry: registry.cn-shanghai.aliyuncs.com
           image: ${{ inputs.acr_repo }}:development-latest
-          options: -v .:/workdir
+          options: -v ${{ github.workspace }}:/workdir
           run: |
             set -x
             cd /workdir
