@@ -178,7 +178,7 @@ jobs:
       - name: 登录ACR
         run: docker login -u ${{ inputs.acr_username }} -p ${{ secrets.acr_password }} registry.cn-shanghai.aliyuncs.com
       - name: 构建和推送镜像
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v2.7.0
         with:
           context: .
           build-args: env=development
@@ -217,15 +217,16 @@ jobs:
             fi
             # 检查代码
             php artisan fix
-
-            if [ -n "$(git status -s)" ]; then
-              git config --global user.email "action@github.com"
-              git config --global user.name "GitHub Action"
-              git pull
-              git add --all
-              git commit -m "--自动修正代码风格--"
-              git push
-            fi
+      - name: 提交变动
+        run: |
+          if [ -n "$(git status -s)" ]; then
+            git config --global user.email "action@github.com"
+            git config --global user.name "GitHub Action"
+            git pull
+            git add --all
+            git commit -m "--自动修正代码风格--"
+            git push
+          fi
 
   install-opcache-package:
     runs-on: ubuntu-latest
