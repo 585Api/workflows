@@ -1,10 +1,10 @@
 ---
 #--------------------------------------------------
-#  格式化代码
+#  检查代码质量
 #--------------------------------------------------
 #
 
-name: Fix Code
+name: Quallity Check
 
 on:
   workflow_call:
@@ -85,3 +85,32 @@ jobs:
             git commit -m "--自动修正代码风格--"
             git push
           fi
+  install-opcache-package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 下载项目
+        uses: actions/checkout@v2.3.5
+        with:
+          ref: "main"
+      - name: 在容器中执行操作
+        uses: addnab/docker-run-action@v3
+        with:
+          username: ${{ inputs.acr_username }}
+          password: ${{ secrets.acr_password }}
+          registry: registry.cn-shanghai.aliyuncs.com
+          image: ${{ inputs.acr_repo }}:development-latest
+          options: -v ${{ github.workspace }}:/workdir
+          run: |
+            if [[ -f "artisan" ]] && [[ -f "composer.json" ]] && grep -q "opcache" composer.json ; then
+              echo '已安装opcahe扩展包'
+            else
+              composer require appstract/laravel-opcache
+            fi
+
+            if [ -n "$(git status -s)" ]; then
+              git config --global user.email "action@github.com"
+              git config --global user.name "GitHub Action"
+              git add --all
+              git commit -m "--自动安装清理opcache缓存的扩展包--"
+              git push
+            fi
