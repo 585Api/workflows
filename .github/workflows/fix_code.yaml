@@ -22,7 +22,6 @@ on:
 jobs:
   fix-code:
     runs-on: ubuntu-latest
-    needs: set-variables
     steps:
       - name: 下载项目
         uses: actions/checkout@v2.3.5
