@@ -6,29 +6,34 @@
 
 name: Deploy Laravel
 
-env:
-  DEPLOY_OWNER: www
-  SSH_USER: root
-  WEB_DIR: /www/wwwroot
-
 on:
   workflow_call:
     inputs:
-      repository:
+      REPOSITORY:
         description: 镜像仓库名称
         required: false
         type: string
         default: registry.cn-shanghai.aliyuncs.com/nooks/${{ github.event.repository.name }}
-      run_tests:
+      RUN_TESTS:
         description: 运行单元测试
         required: false
         type: boolean
         default: false
-      app_url:
+      APP_URL:
         description: 应用的域名
         required: false
         type: string
         default: https://${{ github.event.repository.name }}
+      SSH_USER:
+        description: SSH 用户名
+        required: false
+        type: string
+        default: root
+      DEPLOY_OWNER:
+        description: 部署用户
+        required: false
+        type: string
+        default: www
       DEPLOY_DIR:
         description: 部署目录
         required: false
@@ -65,7 +70,7 @@ jobs:
 
   tests:
     runs-on: ubuntu-latest
-    if: ${{ inputs.run_tests }}
+    if: ${{ inputs.RUN_TESTS }}
     steps:
       - name: 下载项目
         uses: actions/checkout@v2.3.5
@@ -91,7 +96,7 @@ jobs:
       - name: 登录ACR
         run: |
           source secrets && rm -f secrets
-          docker login -u $ACR_USERNAME -p $ACR_PASSWORD ${{ inputs.repository }}
+          docker login -u $ACR_USERNAME -p $ACR_PASSWORD ${{ inputs.REPOSITORY }}
       - name: 构建镜像并推送到仓库
         uses: docker/build-push-action@v2
         with:
@@ -118,7 +123,7 @@ jobs:
       - name: 生成.env文件
         uses: nookery/env-replace-action@main
         env:
-          APP_URL: ${{ inputs.app_url }}
+          APP_URL: ${{ inputs.APP_URL }}
           DATABASE_NAME: ${{ inputs.DATABASE_NAME }}
         with:
           local_script: secrets
@@ -138,14 +143,17 @@ jobs:
         with:
           name: secrets
       - name: 设置环境变量
-        run: source secrets && echo "HOST=$HOST_IP" >> $GITHUB_ENV
+        run: |
+          source secrets
+          echo -e $DEPLOY_KEY > ./deploy_key && chmod 600 deploy_key
+          echo "HOST=$HOST_IP" >> $GITHUB_ENV
       - name: 登录ACR
         run: |
           source secrets
-          docker login -u $ACR_USERNAME -p $ACR_PASSWORD ${{ inputs.repository }}
+          docker login -u $ACR_USERNAME -p $ACR_PASSWORD ${{ inputs.REPOSITORY }}
       - name: 从镜像中提取文件
         run: |
-          id=$(docker create ${{ inputs.repository }})
+          id=$(docker create ${{ inputs.REPOSITORY }})
           docker cp $id:/workdir ./workdir
       - name: 下载.env文件
         uses: actions/download-artifact@v2
@@ -154,15 +162,10 @@ jobs:
           path: ./workdir
       - name: 同步到目标服务器
         run: |
-          source variables && source secrets
-          echo -e $DEPLOY_KEY > ./deploy_key && chmod 600 deploy_key
-          rsync --chown=${{ env.DEPLOY_OWNER }}:${{ env.DEPLOY_OWNER }} \
-            -a \
-            --chmod=755 \
-            --delete \
-            -tt -rltgoDzvO \
+          rsync --chown=${{ inputs.DEPLOY_OWNER }}:${{ inputs.DEPLOY_OWNER }} \
+            -a --chmod=755 --delete -tt -rltgoDzvO \
             -e "ssh -i ./deploy_key -p 22 -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no" \
-            ./workdir/ $SSH_USER@$HOST_IP:${{ inputs.RELEASE_DIR }}
+            ./workdir/ ${{ inputs.SSH_USER }}@$HOST:${{ inputs.RELEASE_DIR }}
 
   link:
     needs: sync
