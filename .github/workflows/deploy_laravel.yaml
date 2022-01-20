@@ -205,19 +205,7 @@ jobs:
           host: ${{ env.HOST }}
           username: root
           key_path: private_key
-          script: |
-            # 保留的版本个数
-            KEEP_COUNT=1
-            cd ${{ inputs.RELEASE_DIR }} && cd ..
-            RELEASE_COUNT=$(cd ${{ inputs.RELEASE_DIR }} && cd .. && find $PWD -maxdepth 1 | grep "${{ inputs.DEPLOY_DIR_NAME }}_*" -c)
-            echo -e "目前在工作目录有 $RELEASE_COUNT 个版本\n"
-            if [ "$RELEASE_COUNT" -gt $KEEP_COUNT ]; then
-              ((DELETE_COUNT=$RELEASE_COUNT-$KEEP_COUNT))
-              echo -e "删除$DELETE_COUNT个最早的版本\n"
-              cd ${{ inputs.RELEASE_DIR }} && cd ..
-              TARGET=$(find $PWD -maxdepth 1 | grep "${{ inputs.DEPLOY_DIR_NAME }}_*" | ll -rt | head -$DELETE_COUNT)
-              echo -e "删除 $TARGET" && rm -rf $TARGET
-            fi
+          script: find ${{ inputs.RELEASE_DIR }}/.. -maxdepth 1 | grep "${{ inputs.DEPLOY_DIR_NAME }}_*" | awk 'NR>3' | xargs rm -rf
 
   clean-artifacts:
     needs: clean-releases
