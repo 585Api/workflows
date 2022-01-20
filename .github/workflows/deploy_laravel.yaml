@@ -24,6 +24,21 @@ on:
         required: false
         type: boolean
         default: false
+      app_url:
+        description: 应用的域名
+        required: false
+        type: string
+        default: https://${{ github.event.repository.name }}
+      DEPLOY_DIR:
+        description: 部署目录
+        required: false
+        type: string
+        default: /www/wwwroot/${{ github.event.repository.name }}
+      DEPLOY_DIR_NAME:
+        description: 部署目录名称
+        required: false
+        type: string
+        default: ${{ github.event.repository.name }}
 
 jobs:
   # 从服务器上下载存储secrets的文件
@@ -51,34 +66,12 @@ jobs:
         run: |
           name="${{ env.WEB_DIR }}/releases/${{ github.event.repository.name }}_$(date +"release_%Y%m%d%H%M%S")"
           echo "RELEASE_DIR=${name}" >> variables
-      - name: 生成部署文件夹路径
-        run: echo "DEPLOY_DIR=/www/wwwroot/${{ github.event.repository.name }}" >> variables
-      - name: 生成部署文件夹名称
-        run: echo "DEPLOY_DIR_NAME=${{ github.event.repository.name }}" >> variables
-      - name: 生成APP_URL
-        run: echo "APP_URL=http://${{ github.event.repository.name }}" >> variables
-      - name: 设置环境变量
-        run: |
-          source variables
-          echo "HOST=$HOST_IP" >> $GITHUB_ENV
       - name: 上传variables文件
         uses: actions/upload-artifact@v2
         with:
           name: variables
           path: variables
           retention-days: 1
-
-  check-variables:
-    runs-on: ubuntu-latest
-    needs: set-variables
-    steps:
-      - run: |
-          echo ${{ env.RELEASE_DIR }}
-          echo ${{ env.HOST_IP }}
-          echo '输出GITHUB_ENV'
-          echo $GITHUB_ENV
-          echo '输出env'
-          echo ${{ env }}
 
   tests:
     runs-on: ubuntu-latest
@@ -140,6 +133,8 @@ jobs:
         run: cp .env.example .env
       - name: 生成.env文件
         uses: nookery/env-replace-action@main
+        env:
+          APP_URL: ${{ inputs.app_url }}
         with:
           local_script: script
       - name: 上传.env构件
@@ -203,7 +198,6 @@ jobs:
           source secrets && source variables
           echo "HOST=$HOST_IP" >> $GITHUB_ENV
           echo "RELEASE_DIR=$RELEASE_DIR" >> $GITHUB_ENV
-          echo "DEPLOY_DIR=$DEPLOY_DIR" >> $GITHUB_ENV
       - name: 生成private_key
         run: source secrets && echo -e $DEPLOY_KEY > private_key
       - name: 设置软链接
@@ -212,7 +206,7 @@ jobs:
           host: ${{ env.HOST }}
           username: root
           key_path: private_key
-          script: cd ${{ env.RELEASE_DIR }} && cd .. && ln -snf ${{ env.RELEASE_DIR }} ${{ env.DEPLOY_DIR }}
+          script: cd ${{ env.RELEASE_DIR }} && cd .. && ln -snf ${{ env.RELEASE_DIR }} ${{ inputs.DEPLOY_DIR }}
 
   clean-releases:
     needs: link
@@ -232,7 +226,6 @@ jobs:
           echo "HOST=$HOST_IP" >> $GITHUB_ENV
           echo "RELEASE_DIR=$RELEASE_DIR" >> $GITHUB_ENV
           echo "DEPLOY_DIR=$DEPLOY_DIR" >> $GITHUB_ENV
-          echo "DEPLOY_DIR_NAME=$DEPLOY_DIR_NAME" >> $GITHUB_ENV
       - name: 生成private_key
         run: source secrets && echo -e $DEPLOY_KEY > private_key
       - name: 清理多余版本
@@ -245,7 +238,7 @@ jobs:
             # 保留的版本个数
             KEEP_COUNT=1
 
-            if [[ ${{ env.DEPLOY_DIR_NAME }} == '' ]]; then
+            if [[ ${{ inputs.DEPLOY_DIR_NAME }} == '' ]]; then
               echo "未配置 DEPLOY_DIR_NAME"
               exit 1
             fi
@@ -254,13 +247,13 @@ jobs:
               exit 1
             fi
             cd ${{ env.RELEASE_DIR }} && cd ..
-            RELEASE_COUNT=$(cd ${{ env.RELEASE_DIR }} && cd .. && find $PWD -maxdepth 1 | grep "${{ env.DEPLOY_DIR_NAME }}_release_*" -c)
+            RELEASE_COUNT=$(cd ${{ env.RELEASE_DIR }} && cd .. && find $PWD -maxdepth 1 | grep "${{ inputs.DEPLOY_DIR_NAME }}_release_*" -c)
             echo -e "目前在工作目录有 $RELEASE_COUNT 个版本\n"
             if [ "$RELEASE_COUNT" -gt $KEEP_COUNT ]; then
               ((DELETE_COUNT=$RELEASE_COUNT-$KEEP_COUNT))
               echo -e "删除$DELETE_COUNT个最早的版本\n"
               cd ${{ env.RELEASE_DIR }} && cd ..
-              TARGET=$(find $PWD -maxdepth 1 | grep "${{ env.DEPLOY_DIR_NAME }}_release_*" | sort --human-numeric-sort | head -$DELETE_COUNT)
+              TARGET=$(find $PWD -maxdepth 1 | grep "${{ inputs.DEPLOY_DIR_NAME }}_release_*" | sort --human-numeric-sort | head -$DELETE_COUNT)
               echo -e "删除 $TARGET"
               rm -rf $TARGET
             fi
