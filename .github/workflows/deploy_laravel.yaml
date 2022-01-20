@@ -165,7 +165,7 @@ jobs:
           rsync --chown=${{ inputs.DEPLOY_OWNER }}:${{ inputs.DEPLOY_OWNER }} \
             -a --chmod=755 --delete -tt -rltgoDzvO \
             -e "ssh -i ./deploy_key -p 22 -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no" \
-            ./workdir/ ${{ inputs.SSH_USER }}@$HOST:${{ inputs.ROOT_DIR }}/${{ inputs.RELEASE_DIR }}
+            ./workdir/ ${{ inputs.SSH_USER }}@$HOST:${{ inputs.ROOT_DIR }}/${{ inputs.DEPLOY_DIR }}/${{ inputs.RELEASE_DIR }}
 
   link:
     needs: sync
