@@ -95,7 +95,7 @@ jobs:
       - name: 登录ACR
         run: |
           source secrets && rm -f secrets
-          docker login -u $ACR_USERNAME -p $ACR_PASSWORD ${{ inputs.registry }}
+          docker login -u $ACR_USERNAME -p $ACR_PASSWORD ${{ inputs.repository }}
       - name: 构建镜像并推送到仓库
         uses: docker/build-push-action@v2
         with:
