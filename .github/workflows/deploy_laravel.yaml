@@ -14,12 +14,12 @@ env:
 on:
   workflow_call:
     inputs:
-      registry:
-        description: 镜像仓库地址
+      repository:
+        description: 镜像仓库名称
         required: false
         type: string
-        default: registry.cn-shanghai.aliyuncs.com/nooks/
-      run-tests:
+        default: registry.cn-shanghai.aliyuncs.com/nooks/${{ github.event.repository.name }}
+      run_tests:
         description: 运行单元测试
         required: false
         type: boolean
@@ -84,24 +84,17 @@ jobs:
 
   build:
     runs-on: ubuntu-latest
-    needs: [set-variables, set-secrets]
+    needs: set-secrets
     steps:
       - name: 下载项目
         uses: actions/checkout@v2.3.5
-      - name: 生成.env文件
-        run: cp .env.example .env
-      - name: 下载variables
-        uses: actions/download-artifact@v2
-        with:
-          name: variables
       - name: 下载secrets
         uses: actions/download-artifact@v2
         with:
           name: secrets
       - name: 登录ACR
         run: |
-          source variables && rm -rf variables
-          source secrets && rm -rf secrets
+          source secrets && rm -f secrets
           docker login -u $ACR_USERNAME -p $ACR_PASSWORD ${{ inputs.registry }}
       - name: 构建镜像并推送到仓库
         uses: docker/build-push-action@v2
@@ -109,9 +102,9 @@ jobs:
           context: .
           push: true
           tags: |
-            ${{ inputs.registry }}${{ github.event.repository.name }}:${{ github.sha }}
-            ${{ inputs.registry }}${{ github.event.repository.name }}:latest
-          cache-from: type=registry,ref=${{ inputs.registry }}${{ github.event.repository.name }}:latest
+            ${{ inputs.repository }}:${{ github.sha }}
+            ${{ inputs.repository }}:latest
+          cache-from: type=registry,ref=${{ inputs.repository }}
           cache-to: type=inline
 
   make-env:
@@ -158,10 +151,10 @@ jobs:
       - name: 登录ACR
         run: |
           source variables && source secrets
-          docker login -u $ACR_USERNAME -p $ACR_PASSWORD ${{ inputs.registry }}
+          docker login -u $ACR_USERNAME -p $ACR_PASSWORD ${{ inputs.repository }}
       - name: 从镜像中提取文件
         run: |
-          id=$(docker create ${{ inputs.registry }}${{ github.event.repository.name }}:latest)
+          id=$(docker create ${{ inputs.repository }})
           docker cp $id:/workdir ./workdir
       - name: 下载.env文件
         uses: actions/download-artifact@v2
@@ -226,7 +219,7 @@ jobs:
           fi
 
   clean-artifacts:
-    needs: clean-releases
+    needs: link
     runs-on: ubuntu-latest
     if: always()
     steps:
