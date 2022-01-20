@@ -23,7 +23,7 @@ on:
         description: 运行单元测试
         required: false
         type: boolean
-        default: true
+        default: false
 
 jobs:
   # 从服务器上下载存储secrets的文件
