@@ -168,6 +168,7 @@ jobs:
           key_path: deploy_key
           source: "./workdir/*"
           target: ${{ inputs.ROOT_DIR }}/${{ inputs.DEPLOY_DIR }}/${{ inputs.RELEASE_DIR }}
+          strip_components: 1
 
   link:
     needs: sync
