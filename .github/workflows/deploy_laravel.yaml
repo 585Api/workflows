@@ -16,11 +16,12 @@ on:
     inputs:
       registry:
         description: 镜像仓库地址
-        required: true
+        required: false
         type: string
         default: registry.cn-shanghai.aliyuncs.com/nooks/
       run-tests:
         description: 运行单元测试
+        required: false
         type: boolean
         default: true
 
