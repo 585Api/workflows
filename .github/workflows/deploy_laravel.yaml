@@ -183,6 +183,7 @@ jobs:
           name: secrets
       - name: 设置环境变量
         run: |
+          source secrets
           echo "HOST=$HOST_IP" >> $GITHUB_ENV
       - name: 生成private_key
         run: source secrets && echo -e $DEPLOY_KEY > private_key
