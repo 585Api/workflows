@@ -259,7 +259,7 @@ jobs:
             fi
 
   clean-artifacts:
-    needs: link
+    needs: clean-releases
     runs-on: ubuntu-latest
     if: always()
     steps:
