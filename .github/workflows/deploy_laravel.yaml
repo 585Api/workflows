@@ -39,6 +39,11 @@ on:
         required: false
         type: string
         default: ${{ github.event.repository.name }}
+      RELEASE_DIR:
+        description: 发布目录
+        required: false
+        type: string
+        default: ${{ env.WEB_DIR }}/releases/${{ github.event.repository.name }}_$(date +"release_%Y%m%d%H%M%S")
 
 jobs:
   # 从服务器上下载存储secrets的文件
