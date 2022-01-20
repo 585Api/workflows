@@ -185,30 +185,12 @@ jobs:
           host: ${{ env.HOST }}
           username: root
           key_path: private_key
-          script: cd ${{ inputs.RELEASE_DIR }} && cd .. && ln -snf ${{ inputs.RELEASE_DIR }} ${{ inputs.DEPLOY_DIR }}
-
-  clean-releases:
-    needs: link
-    runs-on: ubuntu-latest
-    steps:
-      - name: 下载secrets
-        uses: actions/download-artifact@v2
-        with:
-          name: secrets
-      - name: 设置环境变量
-        run: source secrets && echo "HOST=$HOST_IP" >> $GITHUB_ENV
-      - name: 生成private_key
-        run: source secrets && echo -e $DEPLOY_KEY > private_key
-      - name: 清理多余版本
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ env.HOST }}
-          username: root
-          key_path: private_key
-          script: find ${{ inputs.RELEASE_DIR }}/.. -maxdepth 1 | grep "${{ inputs.DEPLOY_DIR_NAME }}_*" | awk 'NR>3' | xargs rm -rf
+          script: |
+            cd ${{ inputs.RELEASE_DIR }}/.. && ln -snf ${{ inputs.RELEASE_DIR }} ${{ inputs.DEPLOY_DIR }}
+            cd ${{ inputs.RELEASE_DIR }}/.. && find $PWD -maxdepth 1 | grep "${{ inputs.DEPLOY_DIR_NAME }}_*" | awk 'NR>3' | xargs rm -rf
 
   clean-artifacts:
-    needs: clean-releases
+    needs: link
     runs-on: ubuntu-latest
     if: always()
     steps:
