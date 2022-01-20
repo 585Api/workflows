@@ -173,6 +173,27 @@ jobs:
             -e "ssh -i ./deploy_key -p 22 -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no" \
             ./workdir/ $SSH_USER@$HOST_IP:$RELEASE_DIR
 
+  ssh:
+    needs: set-secrets
+    runs-on: ubuntu-latest
+    steps:
+      - name: 下载secrets
+        uses: actions/download-artifact@v2
+        with:
+          name: secrets
+      - name: 设置环境变量
+        run: |
+          echo "HOST=$HOST_IP" >> $GITHUB_ENV
+      - name: 生成private_key
+        runs: source secrets && echo -e $DEPLOY_KEY > private_key
+      - name: executing remote ssh commands using ssh key
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ env.HOST }}
+          username: root
+          key_path: private_key
+          script: whoami
+
   link:
     needs: sync
     runs-on: self-hosted
