@@ -48,7 +48,7 @@ on:
         description: 发布目录
         required: false
         type: string
-        default: /www/wwwroot/releases/${{ github.event.repository.name }}_${{ github.ref }}
+        default: /www/wwwroot/releases/${{ github.event.repository.name }}_${{ github.ref_name }}_${{ github.sha }}
       DATABASE_NAME:
         description: 数据库名称
         required: false
