@@ -51,21 +51,34 @@ jobs:
         run: |
           name="${{ env.WEB_DIR }}/releases/${{ github.event.repository.name }}_$(date +"release_%Y%m%d%H%M%S")"
           echo "RELEASE_DIR=${name}" >> variables
-          echo "RELEASE_DIR=$RELEASE_DIR"
       - name: 生成部署文件夹路径
-        run: |
-          echo "DEPLOY_DIR=/www/wwwroot/${{ github.event.repository.name }}" >> variables
-          echo "DEPLOY_DIR=$DEPLOY_DIR"
+        run: echo "DEPLOY_DIR=/www/wwwroot/${{ github.event.repository.name }}" >> variables
       - name: 生成部署文件夹名称
         run: echo "DEPLOY_DIR_NAME=${{ github.event.repository.name }}" >> variables
       - name: 生成APP_URL
         run: echo "APP_URL=http://${{ github.event.repository.name }}" >> variables
+      - name: 设置环境变量
+        run: |
+          source variables
+          echo "HOST=$HOST_IP" >> $GITHUB_ENV
       - name: 上传variables文件
         uses: actions/upload-artifact@v2
         with:
           name: variables
           path: variables
           retention-days: 1
+
+  check-variables:
+    runs-on: ubuntu-latest
+    needs: set-variables
+    steps:
+      - run: |
+          echo ${{ env.RELEASE_DIR }}
+          echo ${{ env.HOST_IP }}
+          echo '输出GITHUB_ENV'
+          echo $GITHUB_ENV
+          echo '输出env'
+          echo ${{ env }}
 
   tests:
     runs-on: ubuntu-latest
