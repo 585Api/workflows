@@ -205,7 +205,7 @@ jobs:
           script: |
             cd ${{ inputs.ROOT_DIR }}/${{ inputs.DEPLOY_DIR }}
             ln -snf ${{ inputs.RELEASE_DIR }} production
-            find $PWD -maxdepth 1 | awk 'NR>3' | xargs rm -rf
+            find $PWD -maxdepth 1 | awk 'NR<5' | xargs rm -rf
 
   clean-artifacts:
     needs: link
