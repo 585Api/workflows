@@ -34,21 +34,21 @@ on:
         required: false
         type: string
         default: www
-      DEPLOY_DIR:
-        description: 部署目录
+      ROOT_DIR:
+        description: 应用根目录
         required: false
         type: string
-        default: /www/wwwroot/${{ github.event.repository.name }}
-      DEPLOY_DIR_NAME:
+        default: /www/wwwroot
+      DEPLOY_DIR:
         description: 部署目录名称
         required: false
         type: string
         default: ${{ github.event.repository.name }}
       RELEASE_DIR:
-        description: 发布目录
+        description: 发布目录名称
         required: false
         type: string
-        default: /www/wwwroot/releases/${{ github.event.repository.name }}_${{ github.ref_name }}_${{ github.sha }}
+        default: ${{ github.ref_name }}_${{ github.sha }}
       DATABASE_NAME:
         description: 数据库名称
         required: false
@@ -165,7 +165,7 @@ jobs:
           rsync --chown=${{ inputs.DEPLOY_OWNER }}:${{ inputs.DEPLOY_OWNER }} \
             -a --chmod=755 --delete -tt -rltgoDzvO \
             -e "ssh -i ./deploy_key -p 22 -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no" \
-            ./workdir/ ${{ inputs.SSH_USER }}@$HOST:${{ inputs.RELEASE_DIR }}
+            ./workdir/ ${{ inputs.SSH_USER }}@$HOST:${{ inputs.ROOT_DIR }}/${{ inputs.RELEASE_DIR }}
 
   link:
     needs: sync
@@ -186,8 +186,9 @@ jobs:
           username: root
           key_path: private_key
           script: |
-            cd ${{ inputs.RELEASE_DIR }}/.. && ln -snf ${{ inputs.RELEASE_DIR }} ${{ inputs.DEPLOY_DIR }}
-            cd ${{ inputs.RELEASE_DIR }}/.. && find $PWD -maxdepth 1 | grep "${{ inputs.DEPLOY_DIR_NAME }}_*" | awk 'NR>3' | xargs rm -rf
+            cd ${{ inputs.ROOT_DIR }}/${{ inputs.DEPLOY_DIR }}
+            ln -snf ${{ inputs.RELEASE_DIR }} production
+            find $PWD -maxdepth 1 | awk 'NR>3' | xargs rm -rf
 
   clean-artifacts:
     needs: link
