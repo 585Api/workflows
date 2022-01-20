@@ -44,6 +44,11 @@ on:
         required: false
         type: string
         default: /www/wwwroot/releases/${{ github.event.repository.name }}_$(date +"release_%Y%m%d%H%M%S")
+      DATABASE_NAME:
+        description: 数据库名称
+        required: false
+        type: string
+        default: ${{ github.event.repository.name }}
 
 jobs:
   # 从服务器上下载存储secrets的文件
@@ -56,26 +61,6 @@ jobs:
         with:
           name: secrets
           path: secrets
-          retention-days: 1
-
-  # 将变量都存入一个文件中，以便后续使用
-  set-variables:
-    runs-on: ubuntu-latest
-    steps:
-      - name: 生成数据库名
-        run: |
-          name=${{ github.event.repository.name }}
-          new=${name//./_}
-          echo "DATABASE_NAME=${new}" >> variables
-      - name: 生成发布文件夹名称
-        run: |
-          name="${{ env.WEB_DIR }}/releases/${{ github.event.repository.name }}_$(date +"release_%Y%m%d%H%M%S")"
-          echo "RELEASE_DIR=${name}" >> variables
-      - name: 上传variables文件
-        uses: actions/upload-artifact@v2
-        with:
-          name: variables
-          path: variables
           retention-days: 1
 
   tests:
@@ -120,28 +105,23 @@ jobs:
 
   make-env:
     runs-on: ubuntu-latest
-    needs: [set-variables, set-secrets]
+    needs: set-secrets
     steps:
       - name: 下载项目
         uses: actions/checkout@v2.3.5
-      - name: 下载variables
-        uses: actions/download-artifact@v2
-        with:
-          name: variables
       - name: 下载secrets
         uses: actions/download-artifact@v2
         with:
           name: secrets
-      - name: 环境变量存入文件中
-        run: cat variables secrets > script
       - name: 复制.env文件模板
         run: cp .env.example .env
       - name: 生成.env文件
         uses: nookery/env-replace-action@main
         env:
           APP_URL: ${{ inputs.app_url }}
+          DATABASE_NAME: ${{ inputs.DATABASE_NAME }}
         with:
-          local_script: script
+          local_script: secrets
       - name: 上传.env构件
         uses: actions/upload-artifact@v2
         with:
@@ -150,20 +130,16 @@ jobs:
           retention-days: 1
 
   sync:
-    needs: [make-env, set-variables, build, set-secrets]
+    needs: [make-env, build, set-secrets]
     runs-on: ubuntu-latest
     steps:
-      - name: 下载variables
-        uses: actions/download-artifact@v2
-        with:
-          name: variables
       - name: 下载secrets
         uses: actions/download-artifact@v2
         with:
           name: secrets
       - name: 登录ACR
         run: |
-          source variables && source secrets
+          source secrets
           docker login -u $ACR_USERNAME -p $ACR_PASSWORD ${{ inputs.repository }}
       - name: 从镜像中提取文件
         run: |
@@ -184,25 +160,18 @@ jobs:
             --delete \
             -tt -rltgoDzvO \
             -e "ssh -i ./deploy_key -p 22 -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no" \
-            ./workdir/ $SSH_USER@$HOST_IP:$RELEASE_DIR
+            ./workdir/ $SSH_USER@$HOST_IP:${{ inputs.RELEASE_DIR }}
 
   link:
     needs: sync
     runs-on: ubuntu-latest
     steps:
-      - name: 下载variables
-        uses: actions/download-artifact@v2
-        with:
-          name: variables
       - name: 下载secrets
         uses: actions/download-artifact@v2
         with:
           name: secrets
       - name: 设置环境变量
-        run: |
-          source secrets && source variables
-          echo "HOST=$HOST_IP" >> $GITHUB_ENV
-          echo "RELEASE_DIR=$RELEASE_DIR" >> $GITHUB_ENV
+        run: source secrets && echo "HOST=$HOST_IP" >> $GITHUB_ENV
       - name: 生成private_key
         run: source secrets && echo -e $DEPLOY_KEY > private_key
       - name: 设置软链接
@@ -211,26 +180,18 @@ jobs:
           host: ${{ env.HOST }}
           username: root
           key_path: private_key
-          script: cd ${{ env.RELEASE_DIR }} && cd .. && ln -snf ${{ env.RELEASE_DIR }} ${{ inputs.DEPLOY_DIR }}
+          script: cd ${{ inputs.RELEASE_DIR }} && cd .. && ln -snf ${{ inputs.RELEASE_DIR }} ${{ inputs.DEPLOY_DIR }}
 
   clean-releases:
     needs: link
     runs-on: ubuntu-latest
     steps:
-      - name: 下载variables
-        uses: actions/download-artifact@v2
-        with:
-          name: variables
       - name: 下载secrets
         uses: actions/download-artifact@v2
         with:
           name: secrets
       - name: 设置环境变量
-        run: |
-          source secrets && source variables
-          echo "HOST=$HOST_IP" >> $GITHUB_ENV
-          echo "RELEASE_DIR=$RELEASE_DIR" >> $GITHUB_ENV
-          echo "DEPLOY_DIR=$DEPLOY_DIR" >> $GITHUB_ENV
+        run: source secrets && echo "HOST=$HOST_IP" >> $GITHUB_ENV
       - name: 生成private_key
         run: source secrets && echo -e $DEPLOY_KEY > private_key
       - name: 清理多余版本
@@ -247,17 +208,17 @@ jobs:
               echo "未配置 DEPLOY_DIR_NAME"
               exit 1
             fi
-            if [[ ${{ env.RELEASE_DIR }} == '' ]]; then
+            if [[ ${{ inputs.RELEASE_DIR }} == '' ]]; then
               echo "RELEASE_DIR错误"
               exit 1
             fi
-            cd ${{ env.RELEASE_DIR }} && cd ..
-            RELEASE_COUNT=$(cd ${{ env.RELEASE_DIR }} && cd .. && find $PWD -maxdepth 1 | grep "${{ inputs.DEPLOY_DIR_NAME }}_release_*" -c)
+            cd ${{ inputs.RELEASE_DIR }} && cd ..
+            RELEASE_COUNT=$(cd ${{ inputs.RELEASE_DIR }} && cd .. && find $PWD -maxdepth 1 | grep "${{ inputs.DEPLOY_DIR_NAME }}_release_*" -c)
             echo -e "目前在工作目录有 $RELEASE_COUNT 个版本\n"
             if [ "$RELEASE_COUNT" -gt $KEEP_COUNT ]; then
               ((DELETE_COUNT=$RELEASE_COUNT-$KEEP_COUNT))
               echo -e "删除$DELETE_COUNT个最早的版本\n"
-              cd ${{ env.RELEASE_DIR }} && cd ..
+              cd ${{ inputs.RELEASE_DIR }} && cd ..
               TARGET=$(find $PWD -maxdepth 1 | grep "${{ inputs.DEPLOY_DIR_NAME }}_release_*" | sort --human-numeric-sort | head -$DELETE_COUNT)
               echo -e "删除 $TARGET"
               rm -rf $TARGET
