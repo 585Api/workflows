@@ -173,72 +173,84 @@ jobs:
             -e "ssh -i ./deploy_key -p 22 -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no" \
             ./workdir/ $SSH_USER@$HOST_IP:$RELEASE_DIR
 
-  ssh:
-    needs: set-secrets
+  link:
+    needs: sync
     runs-on: ubuntu-latest
     steps:
+      - name: 下载variables
+        uses: actions/download-artifact@v2
+        with:
+          name: variables
       - name: 下载secrets
         uses: actions/download-artifact@v2
         with:
           name: secrets
       - name: 设置环境变量
         run: |
-          source secrets
+          source secrets && source variables
           echo "HOST=$HOST_IP" >> $GITHUB_ENV
+          echo "RELEASE_DIR=$RELEASE_DIR" >> $GITHUB_ENV
+          echo "DEPLOY_DIR=$DEPLOY_DIR" >> $GITHUB_ENV
       - name: 生成private_key
         run: source secrets && echo -e $DEPLOY_KEY > private_key
-      - name: executing remote ssh commands using ssh key
+      - name: 设置软链接
         uses: appleboy/ssh-action@master
         with:
           host: ${{ env.HOST }}
           username: root
           key_path: private_key
-          script: whoami
-
-  link:
-    needs: sync
-    runs-on: self-hosted
-    steps:
-      - name: 下载variables
-        uses: actions/download-artifact@v2
-        with:
-          name: variables
-      - name: 设置软链接
-        run: source variables && cd $RELEASE_DIR && cd .. && ln -snf $RELEASE_DIR $DEPLOY_DIR
+          script: cd ${{ env.RELEASE_DIR }} && cd .. && ln -snf ${{ env.RELEASE_DIR }} ${{ env.DEPLOY_DIR }}
 
   clean-releases:
     needs: link
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     steps:
       - name: 下载variables
         uses: actions/download-artifact@v2
         with:
           name: variables
-      - name: 清理多余版本
+      - name: 下载secrets
+        uses: actions/download-artifact@v2
+        with:
+          name: secrets
+      - name: 设置环境变量
         run: |
-          source variables
-          # 保留的版本个数
-          KEEP_COUNT=1
+          source secrets && source variables
+          echo "HOST=$HOST_IP" >> $GITHUB_ENV
+          echo "RELEASE_DIR=$RELEASE_DIR" >> $GITHUB_ENV
+          echo "DEPLOY_DIR=$DEPLOY_DIR" >> $GITHUB_ENV
+          echo "DEPLOY_DIR_NAME=$DEPLOY_DIR_NAME" >> $GITHUB_ENV
+      - name: 生成private_key
+        run: source secrets && echo -e $DEPLOY_KEY > private_key
+      - name: 清理多余版本
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ env.HOST }}
+          username: root
+          key_path: private_key
+          script: |
+            # 保留的版本个数
+            KEEP_COUNT=1
 
-          if [[ $DEPLOY_DIR_NAME == '' ]]; then
-            echo "未配置 DEPLOY_DIR_NAME"
-            exit 1
-          fi
-          if [[ $RELEASE_DIR == '' ]]; then
-            echo "RELEASE_DIR错误"
-            exit 1
-          fi
-          cd $RELEASE_DIR && cd ..
-          RELEASE_COUNT=$(cd ${RELEASE_DIR} && cd .. && find $PWD -maxdepth 1 | grep "${DEPLOY_DIR_NAME}_release_*" -c)
-          echo -e "目前在工作目录有 ${RELEASE_COUNT} 个版本\n"
-          if [ "${RELEASE_COUNT}" -gt ${KEEP_COUNT} ]; then
-            ((DELETE_COUNT=${RELEASE_COUNT}-${KEEP_COUNT}))
-            echo -e "删除${DELETE_COUNT}个最早的版本\n"
-            cd ${RELEASE_DIR} && cd ..
-            TARGET=$(find $PWD -maxdepth 1 | grep "${DEPLOY_DIR_NAME}_release_*" | sort --human-numeric-sort | head -${DELETE_COUNT})
-            echo -e "删除 $TARGET"
-            rm -rf $TARGET
-          fi
+            if [[ ${{ env.DEPLOY_DIR_NAME }} == '' ]]; then
+              echo "未配置 DEPLOY_DIR_NAME"
+              exit 1
+            fi
+            if [[ ${{ env.RELEASE_DIR }} == '' ]]; then
+              echo "RELEASE_DIR错误"
+              exit 1
+            fi
+            cd ${{ env.RELEASE_DIR }} && cd ..
+            RELEASE_COUNT=$(cd ${{ env.RELEASE_DIR }} && cd .. && find $PWD -maxdepth 1 | grep "${{ env.DEPLOY_DIR_NAME }}_release_*" -c)
+            echo -e "目前在工作目录有 $RELEASE_COUNT 个版本\n"
+            if [ "$RELEASE_COUNT" -gt $KEEP_COUNT ]; then
+              ((DELETE_COUNT=$RELEASE_COUNT-$KEEP_COUNT))
+              echo -e "删除$DELETE_COUNT个最早的版本\n"
+              cd ${{ env.RELEASE_DIR }} && cd ..
+              TARGET=$(find $PWD -maxdepth 1 | grep "${{ env.DEPLOY_DIR_NAME }}_release_*" | sort --human-numeric-sort | head -$DELETE_COUNT)
+              echo -e "删除 $TARGET"
+              rm -rf $TARGET
+            fi
 
   clean-artifacts:
     needs: link
