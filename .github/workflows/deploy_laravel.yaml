@@ -70,10 +70,10 @@ jobs:
         with:
           secrets: ${{ toJSON(secrets) }}
       - run: |
-        env
-        echo '输出ACR'
-        echo ${{ secrets.ACR_USERNAME }}
-        echo ${{ secrets.ACR_PASSWORD }}
+          env
+          echo '输出ACR'
+          echo ${{ secrets.ACR_USERNAME }}
+          echo ${{ secrets.ACR_PASSWORD }}
       # - name: 同步到其他项目
       #   uses: google/secrets-sync-action@v1.4.1
       #   with:
