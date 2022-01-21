@@ -177,7 +177,7 @@ jobs:
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.DEPLOY_HOST }}
-          username: ${{ input.SSH_USER }}
+          username: ${{ inputs.SSH_USER }}
           key: ${{ secrets.DEPLOY_KEY }}
           script: |
             cd ${{ inputs.ROOT_DIR }}/${{ inputs.DEPLOY_DIR }}
