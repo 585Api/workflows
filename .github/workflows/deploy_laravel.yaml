@@ -63,7 +63,19 @@ on:
 jobs:
   # 同步Secrets到各个项目
   sync-secrets:
-    uses: 585Api/workflows/.github/workflows/sync_secrets.yaml@main
+    runs-on: ubuntu-latest
+    steps:
+      - name: 将Secrets存入环境变量
+        uses: Firenza/secrets-to-env@v1.1.0
+        with:
+          secrets: ${{ toJSON(secrets) }}
+      - name: 同步到其他项目
+        uses: google/secrets-sync-action@v1.4.1
+        with:
+          SECRETS: "*"
+          REPOSITORIES: ${{github.repository_owner}}/*
+          GITHUB_TOKEN: ${{ secrets.TOKEN_SECRET }}
+          CONCURRENCY: 10
 
   tests:
     runs-on: ubuntu-latest
