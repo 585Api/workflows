@@ -6,10 +6,7 @@
 name: Build Change Log
 
 on:
-  push:
-    branches: [main, develop]
-    tags:
-      - "*"
+  workflow_call:
 
 jobs:
   build:
