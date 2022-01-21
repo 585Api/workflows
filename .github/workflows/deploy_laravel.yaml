@@ -206,7 +206,7 @@ jobs:
           script: |
             cd ${{ inputs.ROOT_DIR }}/${{ inputs.DEPLOY_DIR }}
             ln -snf ${{ inputs.RELEASE_DIR }} production
-            ll -t | grep ^d | awk 'NR>5' | xargs rm -rf
+            ls -lt | grep ^d | awk 'NR>5' | xargs rm -rf
 
   clean-artifacts:
     needs: link
