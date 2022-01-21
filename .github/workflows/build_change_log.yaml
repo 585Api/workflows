@@ -1,0 +1,30 @@
+#--------------------------------------------------
+#  生成更新日志
+#--------------------------------------------------
+#
+
+name: Build Change Log
+
+on:
+  push:
+    branches: [main, develop]
+    tags:
+      - "*"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v2
+      - name: Build Changelog
+        id: github_release
+        uses: mikepenz/release-changelog-builder-action@v2.7.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: 保存更新日志
+        run: echo ${{steps.github_release.outputs.changelog}} > CHANGELOG.md
+      - name: 提交变动
+        uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          commit_message: --自动生成Change Log--
