@@ -69,13 +69,14 @@ jobs:
         uses: Firenza/secrets-to-env@v1.1.0
         with:
           secrets: ${{ toJSON(secrets) }}
-      - name: 同步到其他项目
-        uses: google/secrets-sync-action@v1.4.1
-        with:
-          SECRETS: "^[A-Z0-9]{1}"
-          REPOSITORIES: ${{ github.repository_owner }}/*
-          GITHUB_TOKEN: ${{ secrets.SECRETS_SYNC_TOKEN }}
-          CONCURRENCY: 10
+      - run: env
+      # - name: 同步到其他项目
+      #   uses: google/secrets-sync-action@v1.4.1
+      #   with:
+      #     SECRETS: "^[A-Z0-9]{1}"
+      #     REPOSITORIES: ${{ github.repository_owner }}/*
+      #     GITHUB_TOKEN: ${{ secrets.SECRETS_SYNC_TOKEN }}
+      #     CONCURRENCY: 10
 
   tests:
     runs-on: ubuntu-latest
