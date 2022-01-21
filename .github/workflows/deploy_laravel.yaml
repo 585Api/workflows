@@ -73,7 +73,7 @@ jobs:
         uses: google/secrets-sync-action@v1.4.1
         with:
           SECRETS: "*"
-          REPOSITORIES: ${{github.repository_owner}}/*
+          REPOSITORIES: ${{ github.repository_owner }}/*
           GITHUB_TOKEN: ${{ secrets.SECRETS_SYNC_TOKEN }}
           CONCURRENCY: 10
 
