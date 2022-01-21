@@ -74,7 +74,7 @@ jobs:
         with:
           SECRETS: "*"
           REPOSITORIES: ${{ github.repository_owner }}/*
-          GITHUB_TOKEN: ${{ secrets.SECRETS_SYNC_TOKEN }}
+          GITHUB_TOKEN: 'xxx'
           CONCURRENCY: 10
 
   tests:
