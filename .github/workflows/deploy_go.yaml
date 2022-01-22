@@ -97,3 +97,13 @@ jobs:
           source: "./dist/*"
           target: ${{ inputs.ROOT_DIR }}/${{ inputs.DEPLOY_DIR }}
           strip_components: 0
+
+  clean-artifacts:
+    needs: sync
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: 清理构件
+        uses: geekyeggo/delete-artifact@v1
+        with:
+          name: secrets
