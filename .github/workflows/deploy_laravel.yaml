@@ -168,7 +168,7 @@ jobs:
       - name: 同步到目标服务器
         uses: appleboy/scp-action@master
         with:
-          host: ${{ env.HOST }}
+          host: $HOST
           username: ${{ inputs.SSH_USER }}
           key_path: deploy_key
           source: "./workdir/*"
@@ -199,7 +199,7 @@ jobs:
       - name: 设置软链接
         uses: appleboy/ssh-action@master
         with:
-          host: ${{ env.HOST }}
+          host: $HOST
           username: ${{ inputs.SSH_USER }}
           key_path: private_key
           script: |
