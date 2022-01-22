@@ -81,6 +81,7 @@ jobs:
       - name: 设置环境变量
         run: |
           source secrets
+          echo "HOST=$HOST" >> $GITHUB_ENV
           echo -e $DEPLOY_KEY > ./deploy_key && chmod 600 deploy_key
       - name: 下载构件
         uses: actions/download-artifact@v2
