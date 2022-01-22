@@ -51,7 +51,7 @@ jobs:
       - name: 配置Docker Compose
         uses: KengoTODA/actions-setup-docker-compose@main
         with:
-          version: "2.2.1"
+          version: "v2.2.1"
       - name: Docker Compose信息
         run: docker-compose versin
       - name: 下载项目
