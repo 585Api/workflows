@@ -45,8 +45,10 @@ jobs:
           retention-days: 1
 
   build:
-    uns-on: self-hosted
+    runs-on: ubuntu-latest
     steps:
+      - name: 下载项目
+        uses: actions/checkout@v2.3.5
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v2
         with:
