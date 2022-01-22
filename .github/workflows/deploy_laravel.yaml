@@ -148,15 +148,14 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: secrets
-      - name: 设置环境变量
-        run: |
-          source secrets
-          echo -e $DEPLOY_KEY > ./deploy_key && chmod 600 deploy_key
-          echo "HOST=$HOST_IP" >> $GITHUB_ENV
+      - name: 加载环境变量
+        uses: xom9ikk/dotenv@v1.0.2
+        with:
+          path: secrets
       - name: 登录ACR
         run: |
           source secrets
-          docker login -u $ACR_USERNAME -p $ACR_PASSWORD ${{ inputs.REPOSITORY }}
+          docker login -u ${{ env.ACR_USERNAME }} -p ${{ env.ACR_PASSWORD }} ${{ inputs.REPOSITORY }}
       - name: 从镜像中提取文件
         run: |
           id=$(docker create ${{ inputs.REPOSITORY }})
@@ -171,7 +170,7 @@ jobs:
         with:
           host: ${{ env.HOST }}
           username: ${{ inputs.SSH_USER }}
-          key_path: deploy_key
+          key: ${{ env.DEPLOY_KEY }}
           source: "./workdir/*"
           target: ${{ inputs.ROOT_DIR }}/${{ inputs.DEPLOY_DIR }}/${{ inputs.RELEASE_DIR }}
           strip_components: 1
@@ -180,7 +179,7 @@ jobs:
         with:
           host: ${{ env.HOST }}
           username: ${{ inputs.SSH_USER }}
-          key_path: deploy_key
+          key: ${{ env.DEPLOY_KEY }}
           script: |
             cd ${{ inputs.ROOT_DIR }}/${{ inputs.DEPLOY_DIR }}
             chown -R ${{ inputs.RELEASE_DIR_OWNER }}:${{ inputs.RELEASE_DIR_OWNER }} ${{ inputs.RELEASE_DIR }}
