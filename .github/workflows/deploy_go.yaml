@@ -65,7 +65,7 @@ jobs:
       - name: 构建
         run: docker compose -f docker-compose.dev.yml exec -T app go build -o ${{ inputs.app_name }}
       - name: 提取构件
-        run: docker compose cp app:/workspace/${{ inputs.app_name }} workdir/${{ inputs.app_name }}
+        run: docker compose -f docker-compose.dev.yml cp app:/workspace/${{ inputs.app_name }} workdir/${{ inputs.app_name }}
       - name: 同步到目标服务器
         uses: appleboy/scp-action@master
         with:
