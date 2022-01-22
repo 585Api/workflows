@@ -96,7 +96,7 @@ jobs:
           key_path: deploy_key
           source: "./dist/${{ inputs.APP_NAME }}_linux_amd64/${{ inputs.APP_NAME }}"
           target: /usr/local/bin
-          strip_components: 0
+          strip_components: 2
 
   run:
     needs: sync
@@ -122,7 +122,7 @@ jobs:
             ${{ inputs.APP_NAME }}
 
   clean-artifacts:
-    needs: sync
+    needs: run
     runs-on: ubuntu-latest
     if: always()
     steps:
