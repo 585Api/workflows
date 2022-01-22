@@ -98,6 +98,29 @@ jobs:
           target: /usr/local/bin/${{ inputs.APP_NAME }}
           strip_components: 0
 
+  run:
+    needs: sync
+    runs-on: ubuntu-latest
+    steps:
+      - name: 下载secrets
+        uses: actions/download-artifact@v2
+        with:
+          name: secrets
+      - name: 设置环境变量
+        run: source secrets && echo "HOST=$HOST" >> $GITHUB_ENV
+      - name: 生成private_key
+        run: source secrets && echo -e $DEPLOY_KEY > private_key
+      - name: 设置软链接
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ env.HOST }}
+          username: ${{ inputs.SSH_USER }}
+          key_path: private_key
+          script: |
+            cd /usr/local/bin
+            chmod +x ${{ inputs.APP_NAME }}
+            ${{ inputs.APP_NAME }}
+
   clean-artifacts:
     needs: sync
     runs-on: ubuntu-latest
