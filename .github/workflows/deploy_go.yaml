@@ -48,6 +48,12 @@ jobs:
     runs-on: ubuntu-latest
     needs: set-secrets
     steps:
+      - name: 配置Docker Compose
+        uses: KengoTODA/actions-setup-docker-compose@main
+        with:
+          version: "2.2.1"
+      - name: Docker Compose信息
+        run: docker-compose versin
       - name: 下载项目
         uses: actions/checkout@v2.3.5
       - name: 下载secrets
