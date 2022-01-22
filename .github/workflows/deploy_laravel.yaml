@@ -152,6 +152,7 @@ jobs:
         run: |
           source secrets
           echo -e $DEPLOY_KEY > ./deploy_key && chmod 600 deploy_key
+          echo "HOST=$HOST" >> $GITHUB_ENV
       - name: 登录ACR
         run: |
           source secrets
@@ -168,7 +169,7 @@ jobs:
       - name: 同步到目标服务器
         uses: appleboy/scp-action@master
         with:
-          host: $HOST
+          host: ${{ env.HOST }}
           username: ${{ inputs.SSH_USER }}
           key_path: deploy_key
           source: "./workdir/*"
@@ -193,13 +194,13 @@ jobs:
         with:
           name: secrets
       - name: 设置环境变量
-        run: source secrets
+        run: source secrets && echo "HOST=$HOST" >> $GITHUB_ENV
       - name: 生成private_key
         run: source secrets && echo -e $DEPLOY_KEY > private_key
       - name: 设置软链接
         uses: appleboy/ssh-action@master
         with:
-          host: $HOST
+          host: ${{ env.HOST }}
           username: ${{ inputs.SSH_USER }}
           key_path: private_key
           script: |
