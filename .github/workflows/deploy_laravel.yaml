@@ -151,7 +151,7 @@ jobs:
       - name: 加载环境变量
         uses: xom9ikk/dotenv@v1.0.2
         with:
-          path: secrets
+          path: ./secrets
       - name: 登录ACR
         run: |
           source secrets
