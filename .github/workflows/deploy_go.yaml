@@ -95,7 +95,7 @@ jobs:
           username: ${{ inputs.SSH_USER }}
           key_path: deploy_key
           source: "./dist/${{ inputs.APP_NAME }}_linux_amd64/${{ inputs.APP_NAME }}"
-          target: /usr/local/bin/${{ inputs.APP_NAME }}
+          target: /usr/local/bin
           strip_components: 0
 
   run:
