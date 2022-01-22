@@ -94,8 +94,8 @@ jobs:
           host: ${{ env.HOST }}
           username: ${{ inputs.SSH_USER }}
           key_path: deploy_key
-          source: "./dist/*"
-          target: ${{ inputs.ROOT_DIR }}/${{ inputs.DEPLOY_DIR }}
+          source: "./dist/${{ inputs.APP_NAME }}_linux_amd64/${{ inputs.APP_NAME }}"
+          target: /usr/local/bin/${{ inputs.APP_NAME }}
           strip_components: 0
 
   clean-artifacts:
