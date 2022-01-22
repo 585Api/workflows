@@ -25,6 +25,11 @@ on:
         required: false
         type: string
         default: ${{ github.event.repository.name }}
+      APP_NAME:
+        description: 应用名称
+        required: false
+        type: string
+        default: ${{ github.event.repository.name }}
 
 jobs:
   # 从服务器上下载存储secrets的文件
@@ -52,9 +57,9 @@ jobs:
       - name: 运行应用
         run: docker-compose -f docker-compose.dev.yml up -d --quiet-pull
       - name: 构建
-        run: docker-compose -f docker-compose.dev.yml exec -T app go build
+        run: docker-compose -f docker-compose.dev.yml exec -T app go build -o ${{ inputs.app_name }}
       - name: 提取构件
-        run: docker cp $id:/workspace/jarvis jarvis
+        run: docker-compose cp app:/workspace/${{ inputs.app_name }} workdir/${{ inputs.app_name }}
       - name: 同步到目标服务器
         uses: appleboy/scp-action@master
         with:
