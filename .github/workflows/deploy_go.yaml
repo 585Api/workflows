@@ -53,7 +53,7 @@ jobs:
         with:
           version: "v2.2.1"
       - name: Docker Compose信息
-        run: docker-compose versin
+        run: docker compose versin
       - name: 下载项目
         uses: actions/checkout@v2.3.5
       - name: 下载secrets
@@ -61,11 +61,11 @@ jobs:
         with:
           name: secrets
       - name: 运行应用
-        run: docker-compose -f docker-compose.dev.yml up -d --quiet-pull
+        run: docker compose -f docker-compose.dev.yml up -d --quiet-pull
       - name: 构建
-        run: docker-compose -f docker-compose.dev.yml exec -T app go build -o ${{ inputs.app_name }}
+        run: docker compose -f docker-compose.dev.yml exec -T app go build -o ${{ inputs.app_name }}
       - name: 提取构件
-        run: docker-compose cp app:/workspace/${{ inputs.app_name }} workdir/${{ inputs.app_name }}
+        run: docker compose cp app:/workspace/${{ inputs.app_name }} workdir/${{ inputs.app_name }}
       - name: 同步到目标服务器
         uses: appleboy/scp-action@master
         with:
