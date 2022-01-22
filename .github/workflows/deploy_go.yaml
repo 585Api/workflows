@@ -53,7 +53,7 @@ jobs:
         with:
           version: "v2.2.1"
       - name: Docker Compose信息
-        run: docker compose versin
+        run: docker compose version
       - name: 下载项目
         uses: actions/checkout@v2.3.5
       - name: 下载secrets
