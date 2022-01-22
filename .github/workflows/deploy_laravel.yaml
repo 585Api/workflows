@@ -148,14 +148,14 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: secrets
-      - name: 加载环境变量
-        uses: xom9ikk/dotenv@v1.0.2
-        with:
-          path: ./secrets
+      - name: 设置环境变量
+        run: |
+          source secrets
+          echo -e $DEPLOY_KEY > ./deploy_key && chmod 600 deploy_key
       - name: 登录ACR
         run: |
           source secrets
-          docker login -u ${{ env.ACR_USERNAME }} -p ${{ env.ACR_PASSWORD }} ${{ inputs.REPOSITORY }}
+          docker login -u $ACR_USERNAME -p $ACR_PASSWORD ${{ inputs.REPOSITORY }}
       - name: 从镜像中提取文件
         run: |
           id=$(docker create ${{ inputs.REPOSITORY }})
@@ -170,7 +170,7 @@ jobs:
         with:
           host: ${{ env.HOST }}
           username: ${{ inputs.SSH_USER }}
-          key: ${{ env.DEPLOY_KEY }}
+          key_path: deploy_key
           source: "./workdir/*"
           target: ${{ inputs.ROOT_DIR }}/${{ inputs.DEPLOY_DIR }}/${{ inputs.RELEASE_DIR }}
           strip_components: 1
@@ -179,7 +179,7 @@ jobs:
         with:
           host: ${{ env.HOST }}
           username: ${{ inputs.SSH_USER }}
-          key: ${{ env.DEPLOY_KEY }}
+          key_path: deploy_key
           script: |
             cd ${{ inputs.ROOT_DIR }}/${{ inputs.DEPLOY_DIR }}
             chown -R ${{ inputs.RELEASE_DIR_OWNER }}:${{ inputs.RELEASE_DIR_OWNER }} ${{ inputs.RELEASE_DIR }}
@@ -193,14 +193,14 @@ jobs:
         with:
           name: secrets
       - name: 设置环境变量
-        run: source secrets && echo "HOST=$HOST_IP" >> $GITHUB_ENV
+        run: source secrets
       - name: 生成private_key
         run: source secrets && echo -e $DEPLOY_KEY > private_key
       - name: 设置软链接
         uses: appleboy/ssh-action@master
         with:
           host: ${{ env.HOST }}
-          username: root
+          username: ${{ inputs.SSH_USER }}
           key_path: private_key
           script: |
             cd ${{ inputs.ROOT_DIR }}/${{ inputs.DEPLOY_DIR }}
