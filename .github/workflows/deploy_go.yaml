@@ -54,7 +54,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v2
         with:
-          go-version: 1.15
+          go-version: 1.17
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v2
         with:
@@ -62,23 +62,16 @@ jobs:
           args: release --rm-dist
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - run: ls -alh && ls -alh dist
       - name: Upload assets
         uses: actions/upload-artifact@v2
         with:
           name: myapp
           path: dist/*
 
-  build-and-sync:
+  sync:
     runs-on: ubuntu-latest
-    needs: set-secrets
+    needs: [set-secrets, build]
     steps:
-      - name: 配置Docker Compose
-        uses: KengoTODA/actions-setup-docker-compose@main
-        with:
-          version: "v2.2.1"
-      - name: Docker Compose信息
-        run: docker compose version
       - name: 下载项目
         uses: actions/checkout@v2.3.5
       - name: 下载secrets
@@ -89,19 +82,17 @@ jobs:
         run: |
           source secrets
           echo -e $DEPLOY_KEY > ./deploy_key && chmod 600 deploy_key
-          echo "HOST=$HOST_IP" >> $GITHUB_ENV
-      - name: 运行应用
-        run: docker compose -f docker-compose.dev.yml up -d --quiet-pull
-      - name: 构建
-        run: docker compose -f docker-compose.dev.yml exec -T app go build -o ${{ inputs.app_name }}
-      - name: 提取构件
-        run: docker compose -f docker-compose.dev.yml cp app:/workspace/${{ inputs.app_name }} ./
+      - name: 下载构件
+        uses: actions/download-artifact@v2
+        with:
+          name: myapp
+          path: dist
       - name: 同步到目标服务器
         uses: appleboy/scp-action@master
         with:
           host: ${{ env.HOST }}
           username: ${{ inputs.SSH_USER }}
           key_path: deploy_key
-          source: "./${{ inputs.app_name }}"
+          source: "./dist/*"
           target: ${{ inputs.ROOT_DIR }}/${{ inputs.DEPLOY_DIR }}
           strip_components: 0
