@@ -1,0 +1,66 @@
+---
+#--------------------------------------------------
+#  发布到生产环境
+#  Secrets存储在服务器上，部署时下载
+#--------------------------------------------------
+#
+
+name: Deploy Go
+
+on:
+  workflow_call:
+    inputs:
+      SSH_USER:
+        description: SSH 用户名
+        required: false
+        type: string
+        default: root
+      ROOT_DIR:
+        description: 应用根目录
+        required: false
+        type: string
+        default: /www/wwwroot
+      DEPLOY_DIR:
+        description: 部署目录名称
+        required: false
+        type: string
+        default: ${{ github.event.repository.name }}
+
+jobs:
+  # 从服务器上下载存储secrets的文件
+  set-secrets:
+    runs-on: self-hosted
+    steps:
+      - run: cp /www/secrets secrets
+      - name: 上传secrets文件
+        uses: actions/upload-artifact@v2
+        with:
+          name: secrets
+          path: secrets
+          retention-days: 1
+
+  build-and-sync:
+    runs-on: ubuntu-latest
+    needs: set-secrets
+    steps:
+      - name: 下载项目
+        uses: actions/checkout@v2.3.5
+      - name: 下载secrets
+        uses: actions/download-artifact@v2
+        with:
+          name: secrets
+      - name: 运行应用
+        run: docker-compose -f docker-compose.dev.yml up -d --quiet-pull
+      - name: 构建
+        run: docker-compose -f docker-compose.dev.yml exec -T app go build
+      - name: 提取构件
+        run: docker cp $id:/workspace/jarvis jarvis
+      - name: 同步到目标服务器
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ env.HOST }}
+          username: ${{ inputs.SSH_USER }}
+          key_path: deploy_key
+          source: "./workdir/*"
+          target: ${{ inputs.ROOT_DIR }}/${{ inputs.DEPLOY_DIR }}
+          strip_components: 1
