@@ -1,0 +1,191 @@
+---
+#--------------------------------------------------
+#  发布 Laravel 到生产环境（简单版）
+#  Secrets存储在服务器上，部署时下载
+#--------------------------------------------------
+#
+
+name: Deploy Laravel
+
+on:
+  workflow_call:
+    inputs:
+      APP_URL:
+        description: 应用的域名
+        required: false
+        type: string
+        default: https://${{ github.event.repository.name }}
+      SSH_USER:
+        description: SSH 用户名
+        required: false
+        type: string
+        default: root
+      DEPLOY_OWNER:
+        description: 部署用户
+        required: false
+        type: string
+        default: www
+      ROOT_DIR:
+        description: 应用根目录
+        required: false
+        type: string
+        default: /www/wwwroot
+      DEPLOY_DIR:
+        description: 部署目录名称
+        required: false
+        type: string
+        default: ${{ github.event.repository.name }}
+      RELEASE_DIR:
+        description: 发布目录名称
+        required: false
+        type: string
+        default: ${{ github.ref_name }}_${{ github.sha }}
+      RELEASE_DIR_OWNER:
+        description: 发布目录名称权限归属用户
+        required: false
+        type: string
+        default: www
+      DATABASE_NAME:
+        description: 数据库名称
+        required: false
+        type: string
+        default: ${{ github.event.repository.name }}
+
+jobs:
+  # 从服务器上下载存储secrets的文件
+  set-secrets:
+    runs-on: self-hosted
+    steps:
+      - run: cp /www/secrets secrets
+      - name: 上传secrets文件
+        uses: actions/upload-artifact@v2
+        with:
+          name: secrets
+          path: secrets
+          retention-days: 1
+
+  build:
+    runs-on: ubuntu-latest
+    needs: set-secrets
+    steps:
+      - name: 下载项目
+        uses: actions/checkout@v2.3.5
+      - name: 安装NPM依赖
+        run: npm install
+      - name: NPM 构建
+        run: npm run production
+      - name: 上传NPM构件
+        uses: actions/upload-artifact@v2
+        with:
+          name: npm
+          path: |
+            public/build
+            public/css
+            public/js
+            public/mix-manifest.json
+          retention-days: 1
+
+  make-env:
+    runs-on: ubuntu-latest
+    needs: set-secrets
+    steps:
+      - name: 下载项目
+        uses: actions/checkout@v2.3.5
+      - name: 下载secrets
+        uses: actions/download-artifact@v2
+        with:
+          name: secrets
+      - name: 复制.env文件模板
+        run: cp .env.example .env
+      - name: 生成.env文件
+        uses: nookery/env-replace-action@main
+        env:
+          APP_URL: ${{ inputs.APP_URL }}
+          DATABASE_NAME: ${{ inputs.DATABASE_NAME }}
+        with:
+          local_script: secrets
+      - name: 上传.env构件
+        uses: actions/upload-artifact@v2
+        with:
+          name: .env
+          path: .env
+          retention-days: 1
+
+  sync:
+    if: ${{ always() }}
+    needs: [make-env, build, set-secrets]
+    runs-on: ubuntu-latest
+    steps:
+      - name: 下载项目
+        uses: actions/checkout@v2.3.5
+      - name: 下载secrets
+        uses: actions/download-artifact@v2
+        with:
+          name: secrets
+      - name: 设置环境变量
+        run: |
+          source secrets
+          echo -e $DEPLOY_KEY > ./deploy_key && chmod 600 deploy_key
+          echo "HOST=$HOST" >> $GITHUB_ENV
+      - name: 下载.env文件
+        uses: actions/download-artifact@v2
+        with:
+          name: .env
+      - name: 下载NPM构件
+        uses: actions/download-artifact@v2
+        with:
+          name: npm
+          path: public/
+      - name: 同步到目标服务器
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ env.HOST }}
+          username: ${{ inputs.SSH_USER }}
+          key_path: deploy_key
+          source: "./*"
+          target: ${{ inputs.ROOT_DIR }}/${{ inputs.DEPLOY_DIR }}/${{ inputs.RELEASE_DIR }}
+          strip_components: 0
+      - name: 设置目录权限
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ env.HOST }}
+          username: ${{ inputs.SSH_USER }}
+          key_path: deploy_key
+          script: |
+            cd ${{ inputs.ROOT_DIR }}/${{ inputs.DEPLOY_DIR }}
+            chown -R ${{ inputs.RELEASE_DIR_OWNER }}:${{ inputs.RELEASE_DIR_OWNER }} ${{ inputs.RELEASE_DIR }}
+
+  link:
+    needs: sync
+    runs-on: ubuntu-latest
+    steps:
+      - name: 下载secrets
+        uses: actions/download-artifact@v2
+        with:
+          name: secrets
+      - name: 设置环境变量
+        run: source secrets && echo "HOST=$HOST" >> $GITHUB_ENV
+      - name: 生成private_key
+        run: source secrets && echo -e $DEPLOY_KEY > private_key
+      - name: 设置软链接
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ env.HOST }}
+          username: ${{ inputs.SSH_USER }}
+          key_path: private_key
+          script: |
+            cd ${{ inputs.ROOT_DIR }}/${{ inputs.DEPLOY_DIR }}
+            ln -snf ${{ inputs.RELEASE_DIR }} production
+            ls -lt | grep ^d | awk 'NR>5' | xargs rm -rf
+
+  clean-artifacts:
+    needs: link
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: 清理构件
+        uses: geekyeggo/delete-artifact@v1
+        with:
+          name: |
+            .env
+            secrets
