@@ -20,6 +20,11 @@ on:
         required: false
         type: boolean
         default: false
+      RUN_BUILD:
+        description: 运行Docker Build
+        required: false
+        type: boolean
+        default: true
       APP_URL:
         description: 应用的域名
         required: false
@@ -91,6 +96,7 @@ jobs:
 
   build:
     runs-on: ubuntu-latest
+    if: ${{ inputs.RUN_BUILD }}
     needs: set-secrets
     steps:
       - name: 下载项目
@@ -141,6 +147,7 @@ jobs:
           retention-days: 1
 
   sync:
+    if: ${{ always() }}
     needs: [make-env, build, set-secrets]
     runs-on: ubuntu-latest
     steps:
