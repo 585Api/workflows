@@ -112,7 +112,7 @@ jobs:
           retention-days: 1
 
   sync:
-    if: ${{ always() }}
+    if: ${{ github.action_status != 'failure' }}
     needs: [make-env, build, set-secrets]
     runs-on: ubuntu-latest
     steps:
@@ -151,9 +151,7 @@ jobs:
           host: ${{ env.HOST }}
           username: ${{ inputs.SSH_USER }}
           key_path: deploy_key
-          script: |
-            cd ${{ inputs.ROOT_DIR }}/${{ inputs.DEPLOY_DIR }}
-            chown -R ${{ inputs.RELEASE_DIR_OWNER }}:${{ inputs.RELEASE_DIR_OWNER }} ${{ inputs.RELEASE_DIR }}
+          script: chown -R ${{ inputs.RELEASE_DIR_OWNER }}:${{ inputs.RELEASE_DIR_OWNER }} ${{ inputs.ROOT_DIR }}/${{ inputs.DEPLOY_DIR }}
 
   link:
     needs: sync
