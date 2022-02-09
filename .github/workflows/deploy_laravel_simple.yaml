@@ -165,17 +165,27 @@ jobs:
         run: source secrets && echo "HOST=$HOST" >> $GITHUB_ENV
       - name: 生成private_key
         run: source secrets && echo -e $DEPLOY_KEY > private_key
-      - name: 生产前的准备
+      - name: 安装PHP依赖
         uses: appleboy/ssh-action@master
         with:
           host: ${{ env.HOST }}
           username: ${{ inputs.SSH_USER }}
           key_path: private_key
-          script: |
-            cd ${{ inputs.ROOT_DIR }}/${{ inputs.DEPLOY_DIR }}/production
-            composer install
-            php artisan migrate -f
-            php artisan optimize
+          script: cd ${{ inputs.ROOT_DIR }}/${{ inputs.DEPLOY_DIR }}/production && composer install --no-dev
+      - name: 执行数据库迁移
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ env.HOST }}
+          username: ${{ inputs.SSH_USER }}
+          key_path: private_key
+          script: php ${{ inputs.ROOT_DIR }}/${{ inputs.DEPLOY_DIR }}/production/artisan migrate --force
+      - name: 生产优化
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ env.HOST }}
+          username: ${{ inputs.SSH_USER }}
+          key_path: private_key
+          script: php ${{ inputs.ROOT_DIR }}/${{ inputs.DEPLOY_DIR }}/production/artisan optimize
 
   link:
     needs: prepare
