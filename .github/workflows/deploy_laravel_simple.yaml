@@ -210,6 +210,27 @@ jobs:
             ln -snf ${{ inputs.RELEASE_DIR }} production
             ls -lt | grep ^d | awk 'NR>5' | xargs rm -rf
 
+  register:
+    needs: link
+    runs-on: ubuntu-latest
+    steps:
+      - name: 下载secrets
+        uses: actions/download-artifact@v2
+        with:
+          name: secrets
+      - name: 设置环境变量
+        run: source secrets && echo "HOST=$HOST" >> $GITHUB_ENV
+      - name: 生成private_key
+        run: source secrets && echo -e $DEPLOY_KEY > private_key
+      - name: 注册到宝塔
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ env.HOST }}
+          username: ${{ inputs.SSH_USER }}
+          key_path: private_key
+          script: |
+            jarvis bt site create --host=127.0.0.1:$BT_PORT --key=$BT_KEY --domain=${{ github.event.repository.name }}
+
   clean-artifacts:
     needs: link
     runs-on: ubuntu-latest
