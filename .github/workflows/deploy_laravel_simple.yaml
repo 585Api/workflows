@@ -233,7 +233,7 @@ jobs:
           username: ${{ inputs.SSH_USER }}
           key_path: private_key
           script: |
-            jarvis bt site create --host=127.0.0.1:${{ env.BT_PORT }} --key=${{ env.BT_KEY }} --domain=${{ github.event.repository.name }}
+            jarvis bt site create --host=http://127.0.0.1:${{ env.BT_PORT }} --key=${{ env.BT_KEY }} --domain=${{ github.event.repository.name }}
 
   clean-artifacts:
     needs: register
