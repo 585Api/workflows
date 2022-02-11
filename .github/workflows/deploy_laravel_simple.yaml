@@ -232,7 +232,7 @@ jobs:
             jarvis bt site create --host=127.0.0.1:$BT_PORT --key=$BT_KEY --domain=${{ github.event.repository.name }}
 
   clean-artifacts:
-    needs: link
+    needs: register
     runs-on: ubuntu-latest
     if: always()
     steps:
