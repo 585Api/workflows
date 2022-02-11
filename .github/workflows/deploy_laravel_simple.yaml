@@ -219,7 +219,11 @@ jobs:
         with:
           name: secrets
       - name: 设置环境变量
-        run: source secrets && echo "HOST=$HOST" >> $GITHUB_ENV
+        run: |
+          source secrets
+          echo "HOST=$HOST" >> $GITHUB_ENV
+          echo "BT_KEY=$BT_KEY" >> $GITHUB_ENV
+          echo "BT_PORT=$BT_PORT" >> $GITHUB_ENV
       - name: 生成private_key
         run: source secrets && echo -e $DEPLOY_KEY > private_key
       - name: 注册到宝塔
