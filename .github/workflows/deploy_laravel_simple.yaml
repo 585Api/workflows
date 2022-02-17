@@ -171,21 +171,21 @@ jobs:
           host: ${{ env.HOST }}
           username: ${{ inputs.SSH_USER }}
           key_path: private_key
-          script: cd ${{ inputs.ROOT_DIR }}/${{ inputs.DEPLOY_DIR }}/production && composer install --no-dev
+          script: cd ${{ inputs.ROOT_DIR }}/${{ inputs.DEPLOY_DIR }}/${{ inputs.RELEASE_DIR }} && composer install --no-dev
       - name: 执行数据库迁移
         uses: appleboy/ssh-action@master
         with:
           host: ${{ env.HOST }}
           username: ${{ inputs.SSH_USER }}
           key_path: private_key
-          script: php ${{ inputs.ROOT_DIR }}/${{ inputs.DEPLOY_DIR }}/production/artisan migrate --force
+          script: php ${{ inputs.ROOT_DIR }}/${{ inputs.DEPLOY_DIR }}/${{ inputs.RELEASE_DIR }}/artisan migrate --force
       - name: 生产优化
         uses: appleboy/ssh-action@master
         with:
           host: ${{ env.HOST }}
           username: ${{ inputs.SSH_USER }}
           key_path: private_key
-          script: php ${{ inputs.ROOT_DIR }}/${{ inputs.DEPLOY_DIR }}/production/artisan optimize
+          script: php ${{ inputs.ROOT_DIR }}/${{ inputs.DEPLOY_DIR }}/${{ inputs.RELEASE_DIR }}/artisan optimize
 
   link:
     needs: prepare
