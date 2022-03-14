@@ -141,7 +141,7 @@ jobs:
     runs-on: self-hosted
     steps:
       - name: 安装PHP依赖
-        run: cd ${{ inputs.ROOT_DIR }}/${{ inputs.DEPLOY_DIR }}/${{ inputs.RELEASE_DIR }} && composer install --no-dev
+        run: export COMPOSER_HOME=~/.composer && cd ${{ inputs.ROOT_DIR }}/${{ inputs.DEPLOY_DIR }}/${{ inputs.RELEASE_DIR }} && composer install --no-dev
       - name: 执行数据库迁移
         run: php ${{ inputs.ROOT_DIR }}/${{ inputs.DEPLOY_DIR }}/${{ inputs.RELEASE_DIR }}/artisan migrate --force
       - name: 生产优化
