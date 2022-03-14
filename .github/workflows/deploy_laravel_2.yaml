@@ -132,7 +132,6 @@ jobs:
           name: npm
           path: public/
       - name: 同步到目标目录
-        uses: appleboy/scp-action@master
         run: cp -R . ${{ inputs.ROOT_DIR }}/${{ inputs.DEPLOY_DIR }}/${{ inputs.RELEASE_DIR }}
       - name: 设置目录权限
         run: chown -R ${{ inputs.RELEASE_DIR_OWNER }}:${{ inputs.RELEASE_DIR_OWNER }} ${{ inputs.ROOT_DIR }}/${{ inputs.DEPLOY_DIR }}
