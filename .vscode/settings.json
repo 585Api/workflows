@@ -2,5 +2,8 @@
   "files.associations": {
     "*.yaml": "home-assistant"
   },
-  "cSpell.words": ["appleboy"]
+  "cSpell.words": [
+    "appleboy",
+    "mkdir"
+  ]
 }
