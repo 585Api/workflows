@@ -134,7 +134,7 @@ jobs:
       - name: 同步到目标目录
         run: mkdir -p ${{ inputs.ROOT_DIR }}/${{ inputs.DEPLOY_DIR }}/${{ inputs.RELEASE_DIR }} && cp -R . ${{ inputs.ROOT_DIR }}/${{ inputs.DEPLOY_DIR }}/${{ inputs.RELEASE_DIR }}
       - name: 设置目录权限
-        run: chown -R ${{ inputs.RELEASE_DIR_OWNER }}:${{ inputs.RELEASE_DIR_OWNER }} ${{ inputs.ROOT_DIR }}/${{ inputs.DEPLOY_DIR }}
+        run: chown -R ${{ inputs.RELEASE_DIR_OWNER }}:${{ inputs.RELEASE_DIR_OWNER }} ${{ inputs.ROOT_DIR }}/${{ inputs.DEPLOY_DIR }}/${{ inputs.RELEASE_DIR }}
 
   prepare:
     needs: sync
